@@ -55,11 +55,32 @@ gate-test:
 	    $(BUILD)/sim/nangate45.v $(TB)
 	vvp $(BUILD)/sim/gate
 
-WEB_BIND ?= 0.0.0.0
+# SSH X11 forwarding for XQuartz.
+XAUTHORITY ?= $(HOME)/.Xauthority
+GUI_TARGET ?= gui_final
+gui:
+	@test -n "$(DISPLAY)" || { echo "Connect with ssh -Y and check DISPLAY first."; exit 1; }
+	@test -r "$(XAUTHORITY)" || { echo "Set XAUTHORITY to your readable X11 cookie file."; exit 1; }
+	mkdir -p $(BUILD)
+	@cidfile=$$(mktemp); rm -f "$$cidfile"; \
+	cleanup() { \
+	    if test -s "$$cidfile"; then docker rm -f "$$(cat "$$cidfile")" >/dev/null 2>&1 || :; fi; \
+	    rm -f "$$cidfile"; \
+	}; \
+	trap cleanup EXIT; \
+	trap 'exit 130' INT; \
+	trap 'exit 143' TERM; \
+	$(DOCKER) --cidfile "$$cidfile" --network host \
+	    -e DISPLAY -e XAUTHORITY=/tmp/asic.xauthority -e QT_X11_NO_MITSHM=1 \
+	    -v "$(XAUTHORITY):/tmp/asic.xauthority:ro" \
+	    $(IMAGE) make $(FLOW_ARGS) $(GUI_TARGET) & \
+	wait $$!
+
+# Set WEB_BIND to the server's Tailscale IP for direct tailnet access.
+WEB_BIND ?= 127.0.0.1
 WEB_PORT ?= 8080
-GUI_TARGET ?= web_final
-WEB_TARGET ?= $(GUI_TARGET)
-gui gui-web:
+WEB_TARGET ?= web_final
+gui-web:
 	mkdir -p $(BUILD)
 	@cidfile=$$(mktemp); rm -f "$$cidfile"; \
 	cleanup() { \
