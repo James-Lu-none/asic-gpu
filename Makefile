@@ -2,7 +2,7 @@
 ROOT := $(abspath ..)
 BUILD ?= $(ROOT)/artifacts/asic
 TB := ../sim/unit/mul32/mul32_pattern.sv ../sim/unit/mul32/tb_mul32.sv
-IMAGE := openroad/orfs@sha256:5849e1dde67ba70b36194cf90a172d6c0e4cb2cf5502d6e0dd7c1d251a6d4584
+IMAGE := openroad/orfs:latest
 JOBS ?= 4
 
 FLOW_ARGS = DESIGN_CONFIG=/work/asic/mul32/config.mk \
