@@ -8,13 +8,13 @@ JOBS ?= 4
 FLOW_ARGS = DESIGN_CONFIG=/work/asic/mul32/config.mk \
             WORK_HOME=/work/artifacts/asic NUM_CORES=$(JOBS) \
             KLAYOUT_LVS_FILE=/work/asic/lvs/lvs_freepdk45.lylvs
-DOCKER = docker run --rm --user $$(id -u):$$(id -g) \
+DOCKER = docker run --rm --init --user $$(id -u):$$(id -g) \
          -v $(ROOT):/work:ro -v $(BUILD):/work/artifacts/asic \
          -w /OpenROAD-flow-scripts/flow
 RESULTS := $(BUILD)/results/nangate45/mul32/base
 REPORTS := $(BUILD)/reports/nangate45/mul32/base
 
-.PHONY: flow signoff drc lvs gate-test gui
+.PHONY: flow signoff drc lvs gate-test gui gui-web
 
 # Require an explicit ORFS stage; no tool runs when STAGE is empty.
 flow:
@@ -55,17 +55,21 @@ gate-test:
 	    $(BUILD)/sim/nangate45.v $(TB)
 	vvp $(BUILD)/sim/gate
 
-# SSH X11 forwarding: host networking reaches the localhost display listener.
-XAUTHORITY ?= $(HOME)/.Xauthority
-GUI_TARGET ?= gui_final
-gui:
-	@test -n "$(DISPLAY)" || { echo "Connect with ssh -Y and check DISPLAY first."; exit 1; }
-	@test -r "$(XAUTHORITY)" || { echo "Set XAUTHORITY to your readable X11 cookie file."; exit 1; }
+WEB_BIND ?= 0.0.0.0
+WEB_PORT ?= 8080
+GUI_TARGET ?= web_final
+WEB_TARGET ?= $(GUI_TARGET)
+gui gui-web:
 	mkdir -p $(BUILD)
-	docker run --rm --network host --user $$(id -u):$$(id -g) \
-	    -e DISPLAY -e XAUTHORITY=/tmp/asic.xauthority -e QT_X11_NO_MITSHM=1 \
-	    -v "$(XAUTHORITY):/tmp/asic.xauthority:ro" \
-	    -v $(ROOT):/work:ro \
-	    -v $(BUILD):/work/artifacts/asic \
-	    -w /OpenROAD-flow-scripts/flow \
-	    $(IMAGE) make $(FLOW_ARGS) $(GUI_TARGET)
+	@cidfile=$$(mktemp); rm -f "$$cidfile"; \
+	cleanup() { \
+	    if test -s "$$cidfile"; then docker rm -f "$$(cat "$$cidfile")" >/dev/null 2>&1 || :; fi; \
+	    rm -f "$$cidfile"; \
+	}; \
+	trap cleanup EXIT; \
+	trap 'exit 130' INT; \
+	trap 'exit 143' TERM; \
+	$(DOCKER) --cidfile "$$cidfile" \
+	    -p $(WEB_BIND):$(WEB_PORT):$(WEB_PORT) $(IMAGE) make $(FLOW_ARGS) \
+	    OR_ARGS="-web_no_browser -web_bind 0.0.0.0 -web_port $(WEB_PORT)" $(WEB_TARGET) & \
+	wait $$!
