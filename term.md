@@ -39,11 +39,21 @@
 
 ## 2. 製程, library 與設計輸入
 
-- PDK — Process Design Kit, 製程設計套件: 描述特定製程的模型, 層別, 設計規則及相關檔案; 內容依製程而異
-- Standard cell, 標準元件: 符合 library 規格的邏輯／儲存元件, 例如 NAND, MUX, DFF
-- Liberty／`.lib`: 描述 cell 邏輯功能, timing arc, 功耗, pin 電容及分析條件等資訊的 library 格式
-- Timing arc, 時序弧: cell 內輸入與輸出間的延遲關係, 或 pin 間的 setup／hold 等檢查關係
-- LEF — Library Exchange Format: 提供 placement／routing 所需的層別, 尺寸, pin, 障礙物等抽象資訊
+- PDK (ex: FreePDK45) — Process Design Kit, 製程設計套件: 描述特定製程的模型, 層別, 萃取寄生參數的檢核資訊, 設計規則及相關檔案等
+    - 製程技術檔 (.tf in Cadence or .itf in TLUPlus(Synopsys)): 包含製程中有幾層金屬, 每層金屬的厚度, 寬度限制, 介電質特性
+    - 元件庫與模型 (Component Library & Models)
+        - 晶體管模型 (Device Models): 通常是 HSPICE / Spectre 模型檔 (如 BSIM 模型), 定義了基本元件在不同電壓、溫度下的物理與電氣行為
+        - 參數化單元 (Pcells / Pycells): 可輸入寬度和長度的生成物理形狀的動態元件
+    - DRC(Design Rule Check): 檢查佈局圖是否違反晶圓廠的實體限制 (ex: 兩條 45nm 的導線有沒有靠得太近)
+    - LVS(Layout Versus Schematic): 檢查你畫的物理佈局圖(Layout)與原本的電路圖(Schematic)有沒有長得一模一樣，確保接線沒接錯
+    - RC Extraction(寄生參數萃取): 提供電阻與電容的萃取規則，用於計算走線延遲
+- Standard cell library, 標準元件庫 (ex: Nangate45): 事先設計, 驗證好的一系列基本邏輯元件, 以及描述這些元件行為, 結構與物理特性的各種格式檔案
+    - Verilog Model (.v): 提供給前端設計(RTL/Synthesis)進行邏輯仿真與綜合的行為或結構描述
+    - Liberty file (.lib): 記錄每個 cell 在不同輸入斜率, 輸出負載以及工作溫度/電壓下的 Timing arc (延遲時間, 建立時間, 保持時間) 與功耗數據
+    - GDSII / OASIS (.gds): 晶圓廠用來下線製造的光罩實體圖形檔
+    - LEF (Library Exchange Format): 提供給自動擺放與繞線工具使用的抽象物理視圖, 包含 Pin 的位置、阻擋區 Blockage、金屬層軌道等，隱藏內部細節以節省運算資源
+    - CDL / SPICE Netlist: 晶體管級(Transistor-level)的電路網表，用於後端與電路圖核對(LVS)或精準 SPICE 模擬
+    - PDK / 其它檢核規則檔: 如萃取寄生參數的檢核資訊等
 - Technology LEF, 製程 LEF: 主要描述 routing layer, via, site 等製程相關抽象
 - Cell／Macro LEF, 元件 LEF: 描述每個 cell／macro 的外形, pins 與 routing obstruction, 不是完整電晶體版圖
 - Macro, 巨集區塊: 較大的預先設計區塊, 常見如 SRAM; hard macro 有固定實體實作
@@ -58,6 +68,7 @@
 - Characterization, 元件特性化: 在不同輸入 slew, 輸出 load 與條件下建立 cell 時序／功耗模型
 - LVT／SVT／HVT — Low／Standard／High Vt: 一般而言低 Vt 較快但漏電較高, 需依實際 library 判斷
 - NLDM — Nonlinear Delay Model, 非線性延遲模型: 常用查表方式, 以輸入轉換時間與輸出負載等估計延遲
+    - NLDM 在先進製程（如高阻抗的奈米級導線）中精準度不足，因此現代 .lib 大多會同時包含 CCS (Synopsys) 或 ECSM (Cadence)。
 - CCS — Composite Current Source: 以電流源等方式表達 cell 行為的模型, 用於更精細的時序／雜訊分析
 - Soft IP／Hard IP: 前者通常以可重新實作的 RTL 等形式提供; 後者有固定的實體實作與製程條件
 
@@ -305,7 +316,7 @@
 - DV — Design Verification Engineer, 設計驗證工程師: testbench, reference model, assertions, coverage 與功能回歸
 - Formal Verification Engineer, 形式驗證工程師: 依團隊執行 equivalence Checking 或 property verification, 兩者能力需求有重疊但不完全相同
     - Equivalence Checking Engineer, 等價性檢查工程師: 檢查「同一個電路的兩個不同版本」在功能上是否完全一模一樣
-    - Property Verification Engineer, 屬性驗證工程師: 使用 SVA 或 PSL 等語言，將晶片的規格轉換為數學邏輯上的屬性，並利用形式驗證工具確保電路符合規格，在任何極端情況下（Corner Cases）都不會出錯（如 Deadlock 或功能違規）
+    - Property Verification Engineer, 屬性驗證工程師: 使用 SVA 或 PSL 等語言，將晶片的規格轉換為數學邏輯上的屬性，並利用形式驗證工具確保電路符合規格，在任何極端情況下(Corner Cases)都不會出錯(如 Deadlock 或功能違規)
 - DFT Engineer, 可測試性設計工程師: scan, ATPG, BIST, test modes 與測試覆蓋率
 - FPGA Engineer: FPGA RTL, IP 整合, implementation, 板級驗證等; 和 ASIC PD 有部分可轉移基礎, 但流程不同
 
