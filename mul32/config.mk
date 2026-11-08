@@ -6,3 +6,6 @@ export SDC_FILE = /work/asic/mul32/constraints/mul32.sdc
 export CORE_UTILIZATION = 35
 export PLACE_DENSITY = 0.55
 export TNS_END_PERCENT = 100
+
+# disable dedicated FA/HA mapping to test whether WNS and TNS improves
+# export ADDER_MAP_FILE =

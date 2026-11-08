@@ -118,3 +118,28 @@ Fanout     Cap    Slew   Delay    Time   Description
 -----------------------------------------------------------------------------
                                  -0.19   slack (VIOLATED)
 ```
+
+看起來 wire delay (net) 目前都是 0，然後六個 FA_X1 (full adder with Drive Strength 1) 貢獻了 1.71-1.09 = 0.62 的 latency, 扣掉 1ns 的 input delay, 佔全部的 53%,  所以可能的做法是把 FA_X1 改快一點的？
+
+- 嘗試改寫 default mapping
+
+ADDER_MAP_FILE changed to none, disables both FA and HA mapping
+
+Default mapping:
+
+- Synthesis area 3870.566 um^2; 356 FA_X1, 232 HA_X1 and 96 DFFs.
+- Final standard-cell area 4376.76 um^2, excluding filler cells.
+- Setup worst slack -0.192218 ns; setup TNS -3.38341 ns.
+- Hold worst slack +0.0000368039 ns; hold TNS 0.
+- Worst setup path: b[6] to low_product[28].
+
+No dedicated adder mapping:
+
+- Synthesis area 4958.506 um^2; no FA_X1/HA_X1; 96 DFFs.
+- More XOR/XNOR, AOI/OAI and other standard cells, not a different macro.
+- Final standard-cell area 6709.58 um^2 (+53.3%).
+- Setup worst slack -0.203846 ns; setup TNS -1.63421 ns.
+- Hold worst slack +0.00301929 ns; hold TNS 0.
+- Worst setup path: b[9] to low_product[30].
+
+TNS improved, but worst slack worsened by about 11.6 ps with a substantial area cost, hence keep default mapping for now

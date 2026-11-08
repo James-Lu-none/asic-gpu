@@ -5,7 +5,8 @@ TB := ../sim/unit/mul32/mul32_pattern.sv ../sim/unit/mul32/tb_mul32.sv
 IMAGE := openroad/orfs:latest
 JOBS ?= 4
 
-FLOW_ARGS = DESIGN_CONFIG=/work/asic/mul32/config.mk \
+DESIGN_CONFIG ?= /work/asic/mul32/config.mk
+FLOW_ARGS = DESIGN_CONFIG=$(DESIGN_CONFIG) \
             WORK_HOME=/work/artifacts/asic NUM_CORES=$(JOBS) \
             KLAYOUT_LVS_FILE=/work/asic/lvs/lvs_freepdk45.lylvs
 DOCKER = docker run --rm --init --user $$(id -u):$$(id -g) \
