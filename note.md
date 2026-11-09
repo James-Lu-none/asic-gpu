@@ -3,15 +3,15 @@
 ## 1. Synthesis: 邏輯合成
 
 ```sh
-make -C asic flow STAGE=synth
+make flow STAGE=synth
 ```
 
 Input:
 
-- `rtl/sm/sp/unit/alu_int32_mul.sv`: 描述乘法功能與兩級 pipeline 的 RTL
-- `asic/mul32/constraints/mul32.sdc`: clock, I/O delay, uncertainty, driver／load 等約束
+- `../fpga-gpu-hardware/rtl/sm/sp/unit/alu_int32_mul.sv`: 描述乘法功能與兩級 pipeline 的 RTL
+- `mul32/constraints/mul32.sdc`: clock, I/O delay, uncertainty, driver／load 等約束
 - Nangate45 `*.lib`: 可用 standard cells 的邏輯功能, 時序與功耗模型
-- 平台 `*.lef` 與 `asic/mul32/config.mk`: 建立後續 OpenROAD database 所需的實體抽象與流程設定
+- 平台 `*.lef` 與 `mul32/config.mk`: 建立後續 OpenROAD database 所需的實體抽象與流程設定
 
 Process:
 
@@ -31,15 +31,15 @@ Output:
 ## 2. Gate simulation: 合成後功能模擬
 
 ```sh
-make -C asic gate-test
+make gate-test
 ```
 
 Input:
 
 - `results/1_2_yosys.v`: 已完成 synthesis 的 netlist; 本 target 不會自動執行 synthesis
 - Nangate45 `*.lib`: 由 Yosys 產生 standard-cell 的 Verilog 功能模型
-- `sim/unit/mul32/tb_mul32.sv`: clock, DUT 連接與 timeout
-- `sim/unit/mul32/mul32_pattern.sv`: 測試資料, golden model 與 pipeline latency 檢查
+- `../fpga-gpu-hardware/sim/unit/mul32/tb_mul32.sv`: clock, DUT 連接與 timeout
+- `../fpga-gpu-hardware/sim/unit/mul32/mul32_pattern.sv`: 測試資料, golden model 與 pipeline latency 檢查
 
 Process:
 
@@ -50,20 +50,20 @@ Process:
 
 Output:
 
-- `artifacts/asic/sim/nangate45.v`: 產生的 cell 功能模型
-- `artifacts/asic/sim/gate`: 供 `vvp` 執行的模擬檔
+- `artifacts/asic/sim/nangate45/mul32/base/cells.v`: 產生的 cell 功能模型
+- `artifacts/asic/sim/nangate45/mul32/base/gate`: 供 `vvp` 執行的模擬檔
 
 ## 3. Floorplan: 平面與供電規劃
 
 ```sh
-make -C asic flow STAGE=floorplan
+make flow STAGE=floorplan
 ```
 
 Input:
 
 - `results/1_synth.odb`, `results/1_synth.sdc`: 合成後設計與約束
 - 平台 `*.lef`／`*.lib`: routing layers, sites, cell 尺寸, pins 與時序模型
-- `asic/mul32/config.mk`: 目前 core utilization 35%，未另外指定 aspect ratio
+- `mul32/config.mk`: 目前 core utilization 35%，未另外指定 aspect ratio
 - 平台的 tapcell, PDN 等設定: 定義邊界元件與供電網路的建立方式
 
 Process:
@@ -78,19 +78,19 @@ Output:
 - `results/2_floorplan.odb`: 包含 core, rows, pins 與 power grid 的 database
 - `results/2_floorplan.sdc`: 此階段使用的時序約束
 - `reports/2_*.rpt`, `logs/2_*.log`: floorplan 子步驟的分析與執行紀錄
-- 可用 `make -C asic gui GUI_TARGET=gui_floorplan` 檢查邊界, rows, IO pins 與供電網
+- 可用 `make gui GUI_TARGET=gui_floorplan` 檢查邊界, rows, IO pins 與供電網
 
 ## 4. Placement: 標準元件放置
 
 ```sh
-make -C asic flow STAGE=place
+make flow STAGE=place
 ```
 
 Input:
 
 - `results/2_floorplan.odb`, `results/2_floorplan.sdc`: 已規劃的實體空間與約束
 - 平台 cell models, 實體規則與互連 RC 估計設定
-- `asic/mul32/config.mk`: 目前 `PLACE_DENSITY = 0.55`，控制 placer 的目標密度
+- `mul32/config.mk`: 目前 `PLACE_DENSITY = 0.55`，控制 placer 的目標密度
 
 Process:
 
@@ -109,7 +109,7 @@ Output:
 ## 5. CTS: 時脈樹合成
 
 ```sh
-make -C asic flow STAGE=cts
+make flow STAGE=cts
 ```
 
 Input:
@@ -134,7 +134,7 @@ Output:
 ## 6. Routing: 繞線
 
 ```sh
-make -C asic flow STAGE=route
+make flow STAGE=route
 ```
 
 Input:
@@ -159,7 +159,7 @@ Output:
 ## 7. Finishing: 最終資料產出
 
 ```sh
-make -C asic flow STAGE=finish
+make flow STAGE=finish
 ```
 
 `flow` 必須明確指定 `STAGE`；省略或留空會報錯，不執行工具。
@@ -184,10 +184,10 @@ Output:
 ## 8. Signoff: 四項最終檢查
 
 ```sh
-make -C asic signoff
+make signoff
 ```
 
-先執行 `make -C asic flow STAGE=finish` 產生完整 final 資料。
+先執行 `make flow STAGE=finish` 產生完整 final 資料。
 `signoff` 使用 ORFS 原生 `finish` 一起產生 STA／static IR 分析，再依序執行 DRC、LVS。
 缺少 final 檔案時直接停止。每次移除舊的 final report 與 DRC／LVS database，確保重新分析。
 即使使用 `make -j`，三個執行階段仍依序完成；任一命令失敗就停止。原生 Make 若發現上游輸入較新，仍可能重建相依產物。
@@ -242,7 +242,7 @@ Input:
 - `results/6_final.gds`: 最終幾何版圖
 - `results/6_final.v`: 用來產生 top-level CDL 的最終 netlist
 - 平台 `NangateOpenCellLibrary.cdl`: standard cells 的電晶體級參考電路
-- `asic/lvs/lvs_freepdk45.lylvs`: 本 repo 的 KLayout LVS deck，定義層別, 元件萃取, 連接與比對規則
+- `lvs/lvs_freepdk45.lylvs`: 本 repo 的 KLayout LVS deck，定義層別, 元件萃取, 連接與比對規則
 - `*.cir`／`*.sp` 也常用於 SPICE 參考網表，但副檔名不保證內容格式本指令實際使用 CDL; 不需要 `.lydrc`
 
 Process:
