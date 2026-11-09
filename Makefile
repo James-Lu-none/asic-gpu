@@ -106,9 +106,10 @@ gui:
 	wait $$!
 
 # Set WEB_BIND to the server's Tailscale IP for direct tailnet access.
-WEB_BIND ?= 127.0.0.1
+WEB_BIND ?= 0.0.0.0
 WEB_PORT ?= 8080
 WEB_TARGET ?= web_final
+WEB_HOSTNAME ?= vivado.tail7f7a0f.ts.net
 gui-web:
 	mkdir -p $(BUILD)
 	@cidfile=$$(mktemp); rm -f "$$cidfile"; \
@@ -120,6 +121,7 @@ gui-web:
 	trap 'exit 130' INT; \
 	trap 'exit 143' TERM; \
 	$(DOCKER) --cidfile "$$cidfile" \
+		--hostname $(WEB_HOSTNAME) \
 	    -p $(WEB_BIND):$(WEB_PORT):$(WEB_PORT) $(IMAGE) make $(FLOW_ARGS) \
 	    OR_ARGS="-web_no_browser -web_bind 0.0.0.0 -web_port $(WEB_PORT)" $(WEB_TARGET) & \
 	wait $$!
