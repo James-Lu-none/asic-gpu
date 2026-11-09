@@ -6,7 +6,7 @@ IMAGE := openroad/orfs:latest
 JOBS ?= 4
 
 # Read the selected design once; ORFS receives the same file in the container.
-DESIGN ?= mul32
+DESIGN ?= gpc
 DESIGN_CONFIG ?= $(DESIGN)/config.mk
 include $(DESIGN_CONFIG)
 DESIGN_NICKNAME ?= $(DESIGN_NAME)
