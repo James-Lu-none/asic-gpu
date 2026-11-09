@@ -4,6 +4,7 @@ HARDWARE_ROOT ?= $(abspath $(ROOT)/../fpga-gpu-hardware)
 BUILD ?= $(ROOT)/artifacts/asic
 IMAGE := openroad/orfs:latest
 JOBS ?= 4
+STAGE ?= finish
 
 # Read the selected design once; ORFS receives the same file in the container.
 DESIGN ?= gpc
@@ -45,7 +46,7 @@ elaborate:
 	@echo "Elaboration report: $(REPORTS)/elaborate.rpt"
 	@echo "Memory-preserving design: $(REPORTS)/elaborated.json"
 
-# Require an explicit ORFS stage; no tool runs when STAGE is empty.
+# Default to the complete RTL-to-GDS flow; STAGE selects a partial/native run.
 flow:
 	@test -n "$(strip $(STAGE))" || { echo "Specify STAGE=synth|floorplan|place|cts|route|finish; use signoff for checks."; exit 1; }
 	mkdir -p $(BUILD)
