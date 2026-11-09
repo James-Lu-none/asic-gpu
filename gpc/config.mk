@@ -34,6 +34,15 @@ export ADDITIONAL_LEFS = $(addsuffix .lef,$(GPC_MACROS))
 export ADDITIONAL_GDS = $(addsuffix .gds,$(GPC_MACROS))
 
 export SDC_FILE = /work/gpc/constraints/gpc.sdc
+# Nangate45/OpenRAM platform integration, independent of macro placement.
+export FOOTPRINT_TCL = /work/gpc/technology.tcl
+export TAPCELL_TCL = /work/gpc/tapcell.tcl
+export PDN_TCL = /work/gpc/pdn.tcl
+export POST_DETAIL_PLACE_TCL = /work/gpc/check_power.tcl
+export POST_CTS_TCL = /work/gpc/check_power.tcl
+export POST_GLOBAL_ROUTE_TCL = /work/gpc/check_power.tcl
+export MACRO_ROWS_HALO_X = 4
+export MACRO_ROWS_HALO_Y = 4
 export CORE_UTILIZATION = 35
 export PLACE_DENSITY = 0.55
 export TNS_END_PERCENT = 100
