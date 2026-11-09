@@ -1,0 +1,3 @@
+/artifacts/
+*.vcd
+__pycache__/
