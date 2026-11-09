@@ -12,7 +12,8 @@ temperatures = [25]
 nominal_corner_only = False
 analytical_delay = True
 check_lvsdrc = False
-route_supplies = False
+route_supplies = True
+supply_pin_type = "ring"
 # Use native pin locations for this candidate; qualify pin access before P&R.
 perimeter_pins = False
 output_name = "gpc_sram_1rw_512x274"
