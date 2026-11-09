@@ -16,5 +16,7 @@ check_lvsdrc = False
 route_supplies = True
 supply_pin_type = "ring"
 perimeter_pins = False
+# Preserve real internal routing obstacles instead of blanket layer blockages.
+detailed_lef = True
 output_name = "gpc_sram_1rw1r_256x32"
 output_path = "/out/vrf_256x32"

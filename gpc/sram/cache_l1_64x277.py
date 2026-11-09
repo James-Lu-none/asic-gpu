@@ -16,5 +16,6 @@ route_supplies = True
 supply_pin_type = "ring"
 # Use native pin locations for this candidate; qualify pin access before P&R.
 perimeter_pins = False
+detailed_lef = True
 output_name = "gpc_sram_1rw_64x277"
 output_path = "/out/cache_l1_64x277"
