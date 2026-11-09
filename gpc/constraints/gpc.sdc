@@ -1,5 +1,4 @@
 # Initial block-level feasibility budget, not a measured parent/board contract.
-# Keep the existing 2-SM/1-SP/2-lane architecture unchanged.
 create_clock -name core_clk -period 10.0 [get_ports clk]
 set_clock_uncertainty 0.10 [get_clocks core_clk]
 set_clock_transition 0.10 [get_clocks core_clk]
