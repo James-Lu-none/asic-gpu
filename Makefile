@@ -1,5 +1,6 @@
 .DEFAULT_GOAL := all
-ROOT := $(abspath ..)
+ROOT := $(CURDIR)
+HARDWARE_ROOT ?= $(abspath $(ROOT)/../fpga-gpu-hardware)
 BUILD ?= $(ROOT)/artifacts/asic
 IMAGE := openroad/orfs:latest
 JOBS ?= 4
@@ -13,10 +14,12 @@ FLOW_VARIANT ?= base
 CONFIG_IN_CONTAINER := $(patsubst $(ROOT)/%,/work/%,$(abspath $(DESIGN_CONFIG)))
 
 FLOW_ARGS = DESIGN_CONFIG=$(CONFIG_IN_CONTAINER) \
+            HARDWARE_ROOT=/hardware \
             WORK_HOME=/work/artifacts/asic NUM_CORES=$(JOBS) \
             FLOW_VARIANT=$(FLOW_VARIANT) $(ORFS_ARGS)
 DOCKER = docker run --rm --init --user $$(id -u):$$(id -g) \
          -v $(ROOT):/work:ro -v $(BUILD):/work/artifacts/asic \
+         -v $(HARDWARE_ROOT):/hardware:ro \
          -w /OpenROAD-flow-scripts/flow
 RUN_PATH := $(PLATFORM)/$(DESIGN_NICKNAME)/$(FLOW_VARIANT)
 RESULTS := $(BUILD)/results/$(RUN_PATH)
@@ -24,12 +27,23 @@ REPORTS := $(BUILD)/reports/$(RUN_PATH)
 LOGS := $(BUILD)/logs/$(RUN_PATH)
 SIM_BUILD := $(BUILD)/sim/$(RUN_PATH)
 
-.PHONY: all flow signoff drc lvs gate-test gui gui-web
+.PHONY: all elaborate flow signoff drc lvs gate-test gui gui-web
 
 all:
 	$(MAKE) flow STAGE=finish
 	$(MAKE) drc
 	$(MAKE) lvs
+
+# Canonical RTLIL checkpoint plus a memory-preserving elaboration report.
+elaborate:
+	mkdir -p $(REPORTS)
+	$(DOCKER) $(IMAGE) make $(FLOW_ARGS) \
+	    /work/artifacts/asic/results/$(RUN_PATH)/1_1_yosys_canonicalize.rtlil
+	$(DOCKER) $(IMAGE) bash -c 'source /OpenROAD-flow-scripts/env.sh; \
+	    yosys -Q -T -p "read_rtlil /work/artifacts/asic/results/$(RUN_PATH)/1_1_yosys_canonicalize.rtlil; hierarchy -check -top $(DESIGN_NAME); proc; memory_dff; memory_collect; opt_clean; check -assert; stat; write_json /work/artifacts/asic/reports/$(RUN_PATH)/elaborated.json"' \
+	    > $(REPORTS)/elaborate.rpt 2>&1 || { cat $(REPORTS)/elaborate.rpt; exit 1; }
+	@echo "Elaboration report: $(REPORTS)/elaborate.rpt"
+	@echo "Memory-preserving design: $(REPORTS)/elaborated.json"
 
 # Require an explicit ORFS stage; no tool runs when STAGE is empty.
 flow:
@@ -40,7 +54,7 @@ flow:
 # Require an existing final design instead of silently implementing it here.
 signoff:
 	@for ext in odb sdc spef gds v; do \
-	    test -s $(RESULTS)/6_final.$$ext || { echo "Missing final $$ext; run make -C asic flow STAGE=finish first."; exit 1; }; \
+	    test -s $(RESULTS)/6_final.$$ext || { echo "Missing final $$ext; run make flow STAGE=finish first."; exit 1; }; \
 	done
 	# Rerun ORFS final analysis: it produces STA and static IR together.
 	rm -f $(LOGS)/6_report.log
