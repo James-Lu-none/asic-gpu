@@ -17,7 +17,7 @@ CONFIG_IN_CONTAINER := $(patsubst $(ROOT)/%,/work/%,$(abspath $(DESIGN_CONFIG)))
 FLOW_ARGS = DESIGN_CONFIG=$(CONFIG_IN_CONTAINER) \
             HARDWARE_ROOT=/hardware \
             WORK_HOME=/work/artifacts/asic NUM_CORES=$(JOBS) \
-            FLOW_VARIANT=$(FLOW_VARIANT) $(ORFS_ARGS)
+            FLOW_VARIANT=$(FLOW_VARIANT) $(DESIGN_ARGS) $(ORFS_ARGS)
 DOCKER = docker run --rm --init --user $$(id -u):$$(id -g) \
          -v $(ROOT):/work:ro -v $(BUILD):/work/artifacts/asic \
          -v $(HARDWARE_ROOT):/hardware:ro \
