@@ -9,7 +9,7 @@ SM_CONFIG_FILE := $(lastword $(MAKEFILE_LIST))
 SM_NUM_SPS ?= 2
 SM_NUM_LANES ?= 4
 DESIGN_ARGS = SM_NUM_SPS=$(SM_NUM_SPS) SM_NUM_LANES=$(SM_NUM_LANES) SRAM_ROOT=$(SRAM_ROOT)
-SM_PACKAGE := $(or $(WORK_HOME),/work/artifacts/asic)/generated/sm/$(or $(FLOW_VARIANT),base)/sp$(SM_NUM_SPS)-lanes$(SM_NUM_LANES)/gpu_pkg.sv
+SM_PACKAGE := $(or $(WORK_HOME),/work/artifacts/asic/sm/$(or $(FLOW_VARIANT),base))/generated/sp$(SM_NUM_SPS)-lanes$(SM_NUM_LANES)/gpu_pkg.sv
 
 # ORFS builds this source prerequisite before elaboration. Preserve every other
 # shared package definition; include the dimensions in the path to avoid stale

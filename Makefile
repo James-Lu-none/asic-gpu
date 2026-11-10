@@ -3,7 +3,7 @@ ROOT := $(CURDIR)
 HARDWARE_ROOT ?= $(abspath $(ROOT)/../fpga-gpu-hardware)
 BUILD ?= $(ROOT)/artifacts/asic
 IMAGE := openroad/orfs:latest
-JOBS ?= 4
+JOBS ?= 8
 STAGE ?= finish
 
 # Read the selected design once; ORFS receives the same file in the container.
@@ -14,19 +14,23 @@ DESIGN_NICKNAME ?= $(DESIGN_NAME)
 FLOW_VARIANT ?= base
 CONFIG_IN_CONTAINER := $(patsubst $(ROOT)/%,/work/%,$(abspath $(DESIGN_CONFIG)))
 
+RUN_PATH := $(DESIGN)/$(FLOW_VARIANT)
+RUN_DIR := /work/artifacts/asic/$(RUN_PATH)
+
 FLOW_ARGS = DESIGN_CONFIG=$(CONFIG_IN_CONTAINER) \
             HARDWARE_ROOT=/hardware \
-            WORK_HOME=/work/artifacts/asic NUM_CORES=$(JOBS) \
+            WORK_HOME=$(RUN_DIR) NUM_CORES=$(JOBS) \
+            RESULTS_DIR=$(RUN_DIR)/results REPORTS_DIR=$(RUN_DIR)/reports \
+            LOG_DIR=$(RUN_DIR)/logs OBJECTS_DIR=$(RUN_DIR)/objects \
             FLOW_VARIANT=$(FLOW_VARIANT) $(DESIGN_ARGS) $(ORFS_ARGS)
 DOCKER = docker run --rm --init --user $$(id -u):$$(id -g) \
          -v $(ROOT):/work:ro -v $(BUILD):/work/artifacts/asic \
          -v $(HARDWARE_ROOT):/hardware:ro \
          -w /OpenROAD-flow-scripts/flow
-RUN_PATH := $(PLATFORM)/$(DESIGN_NICKNAME)/$(FLOW_VARIANT)
-RESULTS := $(BUILD)/results/$(RUN_PATH)
-REPORTS := $(BUILD)/reports/$(RUN_PATH)
-LOGS := $(BUILD)/logs/$(RUN_PATH)
-SIM_BUILD := $(BUILD)/sim/$(RUN_PATH)
+RESULTS := $(BUILD)/$(RUN_PATH)/results
+REPORTS := $(BUILD)/$(RUN_PATH)/reports
+LOGS := $(BUILD)/$(RUN_PATH)/logs
+SIM_BUILD := $(BUILD)/$(RUN_PATH)/sim
 
 .PHONY: all elaborate flow signoff drc lvs gate-test gui gui-web
 
@@ -39,9 +43,9 @@ all:
 elaborate:
 	mkdir -p $(REPORTS)
 	$(DOCKER) $(IMAGE) make $(FLOW_ARGS) \
-	    /work/artifacts/asic/results/$(RUN_PATH)/1_1_yosys_canonicalize.rtlil
+	    $(RUN_DIR)/results/1_1_yosys_canonicalize.rtlil
 	$(DOCKER) $(IMAGE) bash -c 'source /OpenROAD-flow-scripts/env.sh; \
-	    yosys -Q -T -p "read_rtlil /work/artifacts/asic/results/$(RUN_PATH)/1_1_yosys_canonicalize.rtlil; hierarchy -check -top $(DESIGN_NAME); proc; memory_dff; memory_collect; opt_clean; check -assert; stat; write_json /work/artifacts/asic/reports/$(RUN_PATH)/elaborated.json"' \
+	    yosys -Q -T -p "read_rtlil $(RUN_DIR)/results/1_1_yosys_canonicalize.rtlil; hierarchy -check -top $(DESIGN_NAME); proc; memory_dff; memory_collect; opt_clean; check -assert; stat; write_json $(RUN_DIR)/reports/elaborated.json"' \
 	    > $(REPORTS)/elaborate.rpt 2>&1 || { cat $(REPORTS)/elaborate.rpt; exit 1; }
 	@echo "Elaboration report: $(REPORTS)/elaborate.rpt"
 	@echo "Memory-preserving design: $(REPORTS)/elaborated.json"
