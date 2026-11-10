@@ -23,7 +23,7 @@ export VERILOG_FILES = $(patsubst $(GPC_RTL_DIR)/%,/hardware/rtl/%,$(GPC_SOURCES
     /work/gpc/sram/cache_line_ram.sv
 
 # Generate each selected macro explicitly with make -C gpc/sram MACRO=...
-VRF_MACRO = /work/artifacts/asic-gpc-audit/openram/vrf_256x32/gpc_sram_1rw1r_256x32
+VRF_MACRO = /work/artifacts/asic-gpc-audit/openram/vrf_128x32/gpc_sram_1rw1r_128x32
 IRAM_MACRO = /work/artifacts/asic-gpc-audit/openram/iram_1024x32/gpc_sram_1rw1r_1024x32
 L1_MACRO = /work/artifacts/asic-gpc-audit/openram/cache_l1_64x277/gpc_sram_1rw_64x277
 L2_MACRO = /work/artifacts/asic-gpc-audit/openram/cache_l2_512x274/gpc_sram_1rw_512x274

@@ -2,7 +2,7 @@
 ROOT := $(abspath ../..)
 OPENRAM_ROOT ?= $(abspath $(ROOT)/../../OpenRAM)
 BUILD ?= $(ROOT)/artifacts/asic-gpc-audit/openram
-MACRO ?= vrf_256x32
+MACRO ?= vrf_128x32
 IMAGE := vlsida/openram-ubuntu@sha256:90ecae634f99fa9055a32e32f9d6af1acc9942b974916f114330e7b5b4b29f7c
 ORFS_IMAGE ?= openroad/orfs:latest
 

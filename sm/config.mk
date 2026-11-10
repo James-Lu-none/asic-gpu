@@ -44,7 +44,7 @@ export VERILOG_FILES = $(SM_PACKAGE) \
 
 # Reuse the generated VRF, IRAM and L1 IP. L2 belongs to the parent partition.
 SRAM_ROOT ?= /work/artifacts/asic-gpc-audit/openram
-SM_MACROS = $(SRAM_ROOT)/vrf_256x32/gpc_sram_1rw1r_256x32 \
+SM_MACROS = $(SRAM_ROOT)/vrf_128x32/gpc_sram_1rw1r_128x32 \
     $(SRAM_ROOT)/iram_1024x32/gpc_sram_1rw1r_1024x32 \
     $(SRAM_ROOT)/cache_l1_64x277/gpc_sram_1rw_64x277
 export ADDITIONAL_LIBS = $(addsuffix _TT_1p1V_25C.lib,$(SM_MACROS))
