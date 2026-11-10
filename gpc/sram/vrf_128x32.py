@@ -1,0 +1,20 @@
+# One odd/even VRF bank: eight warps, sixteen registers per warp, one lane.
+word_size = 32
+num_words = 128
+num_rw_ports = 1
+num_r_ports = 1
+num_w_ports = 0
+tech_name = "freepdk45"
+use_nix = False
+process_corners = ["TT"]
+supply_voltages = [1.1]
+temperatures = [25]
+nominal_corner_only = False
+analytical_delay = True
+check_lvsdrc = False
+route_supplies = True
+supply_pin_type = "ring"
+perimeter_pins = False
+detailed_lef = True
+output_name = "gpc_sram_1rw1r_128x32"
+output_path = "/out/vrf_128x32"
