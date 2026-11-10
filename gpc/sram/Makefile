@@ -4,6 +4,7 @@ OPENRAM_ROOT ?= $(abspath $(ROOT)/../../OpenRAM)
 BUILD ?= $(ROOT)/artifacts/asic-gpc-audit/openram
 MACRO ?= vrf_256x32
 IMAGE := vlsida/openram-ubuntu@sha256:90ecae634f99fa9055a32e32f9d6af1acc9942b974916f114330e7b5b4b29f7c
+ORFS_IMAGE ?= openroad/orfs:latest
 
 .PHONY: generate
 generate:
@@ -17,3 +18,15 @@ generate:
 	    $(IMAGE) python3 /openram/sram_compiler.py /work/gpc/sram/$(MACRO).py \
 	    > $(BUILD)/$(MACRO).log 2>&1 || { cat $(BUILD)/$(MACRO).log; exit 1; }
 	@echo "Candidate SRAM views: $(BUILD)/$(MACRO) (unqualified; see ../README.md)"
+
+# OpenROAD can return success after a Tcl error; require the completion marker.
+.PHONY: pin-access
+pin-access:
+	@test "$$(find $(BUILD)/$(MACRO) -maxdepth 1 -name '*.lef' | wc -l)" -eq 1 || { echo "Generate exactly one macro LEF first."; exit 1; }
+	docker run --rm --user $$(id -u):$$(id -g) \
+	    -v $(ROOT):/work:ro -v $(BUILD):/out:ro \
+	    -e MACRO_LEF=/out/$(MACRO)/$$(basename $(BUILD)/$(MACRO)/*.lef) \
+	    $(ORFS_IMAGE) bash -c 'source /OpenROAD-flow-scripts/env.sh; openroad -exit /work/gpc/sram/pin_access.tcl' \
+	    > $(BUILD)/$(MACRO).pin_access.log 2>&1 || { cat $(BUILD)/$(MACRO).pin_access.log; exit 1; }
+	@grep -qx MACRO_PIN_ACCESS_PASS $(BUILD)/$(MACRO).pin_access.log || { cat $(BUILD)/$(MACRO).pin_access.log; exit 1; }
+	@echo "SRAM pin access passed: $(BUILD)/$(MACRO).pin_access.log"
