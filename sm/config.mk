@@ -46,7 +46,7 @@ export VERILOG_FILES = $(SM_PACKAGE) \
 SRAM_ROOT ?= /work/artifacts/asic-gpc-audit/openram
 SM_MACROS = $(SRAM_ROOT)/vrf_128x32/gpc_sram_1rw1r_128x32 \
     $(SRAM_ROOT)/iram_1024x32/gpc_sram_1rw1r_1024x32 \
-    $(SRAM_ROOT)/cache_l1_64x277/gpc_sram_1rw_64x277
+    $(SRAM_ROOT)/cache_l1_64x70/gpc_sram_1rw_64x70
 export ADDITIONAL_LIBS = $(addsuffix _TT_1p1V_25C.lib,$(SM_MACROS))
 export ADDITIONAL_LEFS = $(addsuffix .lef,$(SM_MACROS))
 export ADDITIONAL_GDS = $(addsuffix .gds,$(SM_MACROS))
@@ -65,6 +65,7 @@ export POST_PDN_TCL = /work/gpc/floorplan_checks.tcl
 export POST_DETAIL_PLACE_TCL = /work/gpc/check_power.tcl
 export POST_CTS_TCL = /work/gpc/check_power.tcl
 export POST_GLOBAL_ROUTE_TCL = /work/gpc/check_power.tcl
+export POST_FINAL_REPORT_TCL = /work/scripts/module_view.tcl
 export MACRO_ROWS_HALO_X = 4
 export MACRO_ROWS_HALO_Y = 4
 
