@@ -1,5 +1,6 @@
 `timescale 1ns / 1ps
-// ASIC cache storage: data and tag share address, enable and refill timing.
+// Four physical width slices share address, enable and refill timing.
+// Padding bits are tied low and discarded; data/tag timing is unchanged.
 // Macro outputs are valid for capture at the next rising edge after a lookup;
 // output values outside that read interval are not part of the interface.
 module cache_line_ram #(
@@ -32,23 +33,37 @@ module cache_line_ram #(
 `endif
     generate
         if (DATA_W == 256 && TAG_W == 21 && NUM_LINES == 64 && ADDR_W == 6) begin : l1
-            gpc_sram_1rw_64x277
+            wire [279:0] slice_write = {3'b0, write_line};
+            wire [279:0] slice_read;
+            assign read_line = slice_read[276:0];
+            for (genvar slice = 0; slice < 4; slice = slice + 1) begin : bank
+                gpc_sram_1rw_64x70
 `ifndef SYNTHESIS
-                #(.VERBOSE(0))
+                    #(.VERBOSE(0))
 `endif
-            memory (
-                .clk0(clk), .csb0(chip_select_n), .web0(!write_enable),
-                .addr0(address), .din0(write_line), .dout0(read_line)
-            );
+                memory (
+                    .clk0(clk), .csb0(chip_select_n), .web0(!write_enable),
+                    .addr0(address),
+                    .din0(slice_write[slice*70 +: 70]),
+                    .dout0(slice_read[slice*70 +: 70])
+                );
+            end
         end else if (DATA_W == 256 && TAG_W == 18 && NUM_LINES == 512 && ADDR_W == 9) begin : l2
-            gpc_sram_1rw_512x274
+            wire [275:0] slice_write = {2'b0, write_line};
+            wire [275:0] slice_read;
+            assign read_line = slice_read[273:0];
+            for (genvar slice = 0; slice < 4; slice = slice + 1) begin : bank
+                gpc_sram_1rw_512x69
 `ifndef SYNTHESIS
-                #(.VERBOSE(0))
+                    #(.VERBOSE(0))
 `endif
-            memory (
-                .clk0(clk), .csb0(chip_select_n), .web0(!write_enable),
-                .addr0(address), .din0(write_line), .dout0(read_line)
-            );
+                memory (
+                    .clk0(clk), .csb0(chip_select_n), .web0(!write_enable),
+                    .addr0(address),
+                    .din0(slice_write[slice*69 +: 69]),
+                    .dout0(slice_read[slice*69 +: 69])
+                );
+            end
         end else begin : unsupported_shape
             initial $fatal(1, "Unsupported cache SRAM shape");
         end
