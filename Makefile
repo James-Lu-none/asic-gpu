@@ -4,14 +4,18 @@ HARDWARE_ROOT ?= $(abspath $(ROOT)/../fpga-gpu-hardware)
 BUILD ?= $(ROOT)/artifacts/asic
 IMAGE := openroad/orfs:latest
 JOBS ?= 8
+DOCKER_ARGS ?=
 STAGE ?= finish
 
 # Read the selected design once; ORFS receives the same file in the container.
 DESIGN ?= gpc
-DESIGN_CONFIG ?= $(DESIGN)/config.mk
+FLOW_VARIANT ?= base
+DESIGN_CONFIG ?= $(if $(filter base,$(FLOW_VARIANT)),$(DESIGN)/config.mk,$(DESIGN)/variants/$(FLOW_VARIANT).mk)
+ifeq ($(wildcard $(DESIGN_CONFIG)),)
+$(error Missing design config/preset: $(DESIGN_CONFIG). Use FLOW_VARIANT=base or an existing preset; set DESIGN_CONFIG explicitly for a custom run)
+endif
 include $(DESIGN_CONFIG)
 DESIGN_NICKNAME ?= $(DESIGN_NAME)
-FLOW_VARIANT ?= base
 CONFIG_IN_CONTAINER := $(patsubst $(ROOT)/%,/work/%,$(abspath $(DESIGN_CONFIG)))
 
 RUN_PATH := $(DESIGN)/$(FLOW_VARIANT)
@@ -23,7 +27,7 @@ FLOW_ARGS = DESIGN_CONFIG=$(CONFIG_IN_CONTAINER) \
             RESULTS_DIR=$(RUN_DIR)/results REPORTS_DIR=$(RUN_DIR)/reports \
             LOG_DIR=$(RUN_DIR)/logs OBJECTS_DIR=$(RUN_DIR)/objects \
             FLOW_VARIANT=$(FLOW_VARIANT) $(DESIGN_ARGS) $(ORFS_ARGS)
-DOCKER = docker run --rm --init --user $$(id -u):$$(id -g) \
+DOCKER = docker run --rm --init $(DOCKER_ARGS) --user $$(id -u):$$(id -g) \
          -v $(ROOT):/work:ro -v $(BUILD):/work/artifacts/asic \
          -v $(HARDWARE_ROOT):/hardware:ro \
          -w /OpenROAD-flow-scripts/flow
@@ -32,7 +36,7 @@ REPORTS := $(BUILD)/$(RUN_PATH)/reports
 LOGS := $(BUILD)/$(RUN_PATH)/logs
 SIM_BUILD := $(BUILD)/$(RUN_PATH)/sim
 
-.PHONY: all elaborate flow signoff drc lvs gate-test gui gui-web
+.PHONY: all elaborate flow signoff drc lvs gate-test gui gui-web images
 
 all:
 	$(MAKE) flow STAGE=finish
@@ -55,6 +59,19 @@ flow:
 	@test -n "$(strip $(STAGE))" || { echo "Specify STAGE=synth|floorplan|place|cts|route|finish; use signoff for checks."; exit 1; }
 	mkdir -p $(BUILD)
 	$(DOCKER) $(IMAGE) make $(FLOW_ARGS) $(STAGE)
+
+# Render an existing checkpoint without rerunning implementation or signoff.
+IMAGE_STAGE ?= 6_final
+IMAGE_PREFIX = $(if $(filter 6_final,$(IMAGE_STAGE)),final,$(IMAGE_STAGE))
+images:
+	@test -s $(RESULTS)/$(IMAGE_STAGE).odb || { echo "Missing $(RESULTS)/$(IMAGE_STAGE).odb"; exit 1; }
+	mkdir -p $(REPORTS) $(LOGS)
+	$(DOCKER) -e QT_QPA_PLATFORM=offscreen -e RESULTS_DIR=$(RUN_DIR)/results \
+	    -e REPORTS_DIR=$(RUN_DIR)/reports -e IMAGE_DB=$(RUN_DIR)/results/$(IMAGE_STAGE).odb \
+	    -e IMAGE_PREFIX=$(IMAGE_PREFIX) $(IMAGE) bash -c \
+	    'source /OpenROAD-flow-scripts/env.sh; openroad -exit /work/scripts/module_view.tcl' \
+	    > $(LOGS)/module_view.log 2>&1 || { tail -30 $(LOGS)/module_view.log; exit 1; }
+	@echo "Module view: $(REPORTS)/$(IMAGE_PREFIX)_modules.webp"
 
 # Require an existing final design instead of silently implementing it here.
 signoff:
