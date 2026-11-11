@@ -18,15 +18,13 @@ GPC_SOURCES := $(filter-out \
     , $(GPC_SOURCES))
 export VERILOG_INCLUDE_DIRS = /hardware/rtl/common
 export VERILOG_FILES = $(patsubst $(GPC_RTL_DIR)/%,/hardware/rtl/%,$(GPC_SOURCES)) \
-    /work/gpc/sram/vector_regfile_ram.sv \
-    /work/gpc/sram/instruction_ram.sv \
-    /work/gpc/sram/cache_line_ram.sv
+    /work/sram/vector_regfile_ram.sv \
+    /work/sram/instruction_ram.sv \
+    /work/sram/cache_line_ram.sv
 
-# Generate each selected macro explicitly with make -C gpc/sram MACRO=...
-VRF_MACRO = /work/artifacts/asic-gpc-audit/openram/vrf_128x32/gpc_sram_1rw1r_128x32
-IRAM_MACRO = /work/artifacts/asic-gpc-audit/openram/iram_1024x32/gpc_sram_1rw1r_1024x32
-L1_MACRO = /work/artifacts/asic-gpc-audit/openram/cache_l1_64x70/gpc_sram_1rw_64x70
-L2_MACRO = /work/artifacts/asic-gpc-audit/openram/cache_l2_512x69/gpc_sram_1rw_512x69
+# Shared SRAM IP views, generated with make -C sram MACRO=...
+include $(dir $(lastword $(MAKEFILE_LIST)))../sram/views.mk
+DESIGN_ARGS = SRAM_ROOT=$(SRAM_ROOT)
 GPC_MACROS = $(VRF_MACRO) $(IRAM_MACRO) $(L1_MACRO) $(L2_MACRO)
 
 export ADDITIONAL_LIBS = $(addsuffix _TT_1p1V_25C.lib,$(GPC_MACROS))
@@ -35,7 +33,7 @@ export ADDITIONAL_GDS = $(addsuffix .gds,$(GPC_MACROS))
 
 export SDC_FILE = /work/gpc/constraints/gpc.sdc
 # Nangate45/OpenRAM platform integration, independent of macro placement.
-export FOOTPRINT_TCL = /work/gpc/technology.tcl
+export FOOTPRINT_TCL = /work/sram/technology.tcl
 export TAPCELL_TCL = /work/gpc/tapcell.tcl
 export PDN_TCL = /work/gpc/pdn.tcl
 export POST_PDN_TCL = /work/gpc/floorplan_checks.tcl

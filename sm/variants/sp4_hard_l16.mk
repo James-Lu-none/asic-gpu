@@ -11,13 +11,13 @@ SP_MACRO_DIR = /work/artifacts/asic/sp/ar1_hold100/results
 SM_SHELL_SOURCES := $(filter-out $(SM_RTL_DIR)/sm/sp/%,$(SM_SOURCES))
 export VERILOG_FILES := $(SM_PACKAGE) \
     $(patsubst $(SM_RTL_DIR)/%,/hardware/rtl/%,$(SM_SHELL_SOURCES)) \
-    /work/gpc/sram/cache_line_ram.sv /work/sm/sp_macro.sv
+    /work/sram/cache_line_ram.sv /work/sm/sp_macro.sv
 export ADDITIONAL_LIBS = $(SP_MACRO_DIR)/sp_pd_top_typ.lib \
-    $(SRAM_ROOT)/cache_l1_64x70/gpc_sram_1rw_64x70_TT_1p1V_25C.lib
+    $(L1_MACRO)_TT_1p1V_25C.lib
 export ADDITIONAL_LEFS = $(SP_MACRO_DIR)/sp_pd_top.lef \
-    $(SRAM_ROOT)/cache_l1_64x70/gpc_sram_1rw_64x70.lef
+    $(L1_MACRO).lef
 export ADDITIONAL_GDS = $(SP_MACRO_DIR)/6_final.gds \
-    $(SRAM_ROOT)/cache_l1_64x70/gpc_sram_1rw_64x70.gds
+    $(L1_MACRO).gds
 
 # 2 x 2 completed 1478.175 um SPs, with outer and central integration channels.
 export CORE_UTILIZATION =
@@ -34,5 +34,5 @@ export GRT_SEED = 1
 
 # GUI-only expansion of the hardened SP; not used during implementation.
 export DETAIL_BLOCKS = sp_pd_top $(SP_MACRO_DIR)/6_final.odb
-export DETAIL_LEFS = $(SRAM_ROOT)/vrf_128x32/gpc_sram_1rw1r_128x32.lef \
-    $(SRAM_ROOT)/iram_1024x32/gpc_sram_1rw1r_1024x32.lef
+export DETAIL_LEFS = $(VRF_MACRO).lef \
+    $(IRAM_MACRO).lef

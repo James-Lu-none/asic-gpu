@@ -3,7 +3,7 @@
 set platform /OpenROAD-flow-scripts/flow/platforms/nangate45
 read_lef $platform/lef/NangateOpenCellLibrary.tech.lef
 read_lef $::env(MACRO_LEF)
-source /work/gpc/technology.tcl
+source /work/sram/technology.tcl
 
 set db [ord::get_db]
 set tech [$db getTech]

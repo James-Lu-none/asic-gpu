@@ -38,15 +38,13 @@ SM_SOURCES := $(filter-out \
 export VERILOG_INCLUDE_DIRS = /hardware/rtl/common
 export VERILOG_FILES = $(SM_PACKAGE) \
     $(patsubst $(SM_RTL_DIR)/%,/hardware/rtl/%,$(SM_SOURCES)) \
-    /work/gpc/sram/vector_regfile_ram.sv \
-    /work/gpc/sram/instruction_ram.sv \
-    /work/gpc/sram/cache_line_ram.sv
+    /work/sram/vector_regfile_ram.sv \
+    /work/sram/instruction_ram.sv \
+    /work/sram/cache_line_ram.sv
 
 # Reuse the generated VRF, IRAM and L1 IP. L2 belongs to the parent partition.
-SRAM_ROOT ?= /work/artifacts/asic-gpc-audit/openram
-SM_MACROS = $(SRAM_ROOT)/vrf_128x32/gpc_sram_1rw1r_128x32 \
-    $(SRAM_ROOT)/iram_1024x32/gpc_sram_1rw1r_1024x32 \
-    $(SRAM_ROOT)/cache_l1_64x70/gpc_sram_1rw_64x70
+include $(dir $(lastword $(MAKEFILE_LIST)))../sram/views.mk
+SM_MACROS = $(VRF_MACRO) $(IRAM_MACRO) $(L1_MACRO)
 export ADDITIONAL_LIBS = $(addsuffix _TT_1p1V_25C.lib,$(SM_MACROS))
 export ADDITIONAL_LEFS = $(addsuffix .lef,$(SM_MACROS))
 export ADDITIONAL_GDS = $(addsuffix .gds,$(SM_MACROS))
@@ -58,7 +56,7 @@ export PLACE_DENSITY = 0.55
 export TNS_END_PERCENT = 100
 
 # Shared Nangate45/OpenRAM integration hooks, without GPC hierarchy assumptions.
-export FOOTPRINT_TCL = /work/gpc/technology.tcl
+export FOOTPRINT_TCL = /work/sram/technology.tcl
 export TAPCELL_TCL = /work/gpc/tapcell.tcl
 export PDN_TCL = /work/gpc/pdn.tcl
 export POST_PDN_TCL = /work/gpc/floorplan_checks.tcl

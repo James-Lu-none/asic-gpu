@@ -5,9 +5,8 @@ include $(dir $(lastword $(MAKEFILE_LIST)))../sm/config.mk
 
 export DESIGN_NAME = sp_pd_top
 export DESIGN_NICKNAME = sp
-export VERILOG_FILES := $(filter-out /work/gpc/sram/cache_line_ram.sv,$(VERILOG_FILES)) /work/sp/sp_pd_top.sv
-SM_MACROS = $(SRAM_ROOT)/vrf_128x32/gpc_sram_1rw1r_128x32 \
-    $(SRAM_ROOT)/iram_1024x32/gpc_sram_1rw1r_1024x32
+export VERILOG_FILES := $(filter-out /work/sram/cache_line_ram.sv,$(VERILOG_FILES)) /work/sp/sp_pd_top.sv
+SM_MACROS = $(VRF_MACRO) $(IRAM_MACRO)
 
 export SDC_FILE = /work/sp/constraints.sdc
 export IO_CONSTRAINTS = /work/sp/io.tcl
