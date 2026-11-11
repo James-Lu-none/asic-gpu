@@ -36,7 +36,7 @@ REPORTS := $(BUILD)/$(RUN_PATH)/reports
 LOGS := $(BUILD)/$(RUN_PATH)/logs
 SIM_BUILD := $(BUILD)/$(RUN_PATH)/sim
 
-.PHONY: all elaborate flow signoff drc lvs gate-test gui gui-web images
+.PHONY: all elaborate flow abstract signoff drc lvs gate-test gui gui-web images
 
 all:
 	$(MAKE) flow STAGE=finish
@@ -59,6 +59,30 @@ flow:
 	@test -n "$(strip $(STAGE))" || { echo "Specify STAGE=synth|floorplan|place|cts|route|finish; use signoff for checks."; exit 1; }
 	mkdir -p $(BUILD)
 	$(DOCKER) $(IMAGE) make $(FLOW_ARGS) $(STAGE)
+
+# Package an existing routed block for use as a hard macro in its parent.
+abstract:
+	@for ext in odb sdc spef gds v; do \
+	    test -s $(RESULTS)/6_final.$$ext || { echo "Missing final $$ext; complete this block first."; exit 1; }; \
+	done
+	$(DOCKER) $(IMAGE) make $(FLOW_ARGS) run \
+	    RUN_SCRIPT=/work/scripts/export_macro.tcl RUN_LOG_NAME_STEM=export_macro
+
+# Expand completed macro geometry in a separate GUI database; no P&R is rerun.
+.PHONY: details gui-detail web-gui-detail
+details:
+	@test -n "$(strip $(DETAIL_BLOCKS))" || { echo "Select a hierarchical preset with DETAIL_BLOCKS (SM: FLOW_VARIANT=sp4_hard_l16)."; exit 1; }
+	@test -s $(RESULTS)/6_final.odb || { echo "Complete the parent flow first."; exit 1; }
+	$(DOCKER) $(IMAGE) make $(FLOW_ARGS) run \
+	    RUN_SCRIPT=/work/scripts/detail_view.tcl RUN_LOG_NAME_STEM=detail_view
+
+gui-detail:
+	@test -s $(RESULTS)/6_final_detailed.odb || { echo "Run make details DESIGN=$(DESIGN) first."; exit 1; }
+	$(MAKE) gui GUI_TARGET=gui_6_final_detailed.odb ORFS_ARGS="$(ORFS_ARGS) GUI_TIMING=0"
+
+gui-web-detail:
+	@test -s $(RESULTS)/6_final_detailed.odb || { echo "Run make details DESIGN=$(DESIGN) FLOW_VARIANT=$(FLOW_VARIANT) first."; exit 1; }
+	$(MAKE) gui-web WEB_TARGET=web_6_final_detailed.odb ORFS_ARGS="$(ORFS_ARGS) GUI_TIMING=0"
 
 # Render an existing checkpoint without rerunning implementation or signoff.
 IMAGE_STAGE ?= 6_final
