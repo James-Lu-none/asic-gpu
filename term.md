@@ -71,6 +71,10 @@
     - NLDM 在先進製程（如高阻抗的奈米級導線）中精準度不足，因此現代 .lib 大多會同時包含 CCS (Synopsys) 或 ECSM (Cadence)。
 - CCS — Composite Current Source: 以電流源等方式表達 cell 行為的模型, 用於更精細的時序／雜訊分析
 - Soft IP／Hard IP: 前者通常以可重新實作的 RTL 等形式提供; 後者有固定的實體實作與製程條件
+- FEOL（Front-End of Line，前段製程）: 在純矽晶圓（Silicon Substrate）上直接製作主動元件，例如電晶體（如 MOSFET / CMOS）、電阻、電容等。
+- MOL / MEOL（Mid-End of Line，中段製程）: 在電晶體做好後，製作接觸窗（Contact）與閘極（Gate）等連接結構，將底層的電晶體引出訊號。
+    - 早期或較舊的製程中通常沒有獨立的中段，直接進入金屬線階段。
+- BEOL（Back-End of Line，後段製程）: 在電晶體上方一層一層疊上導電金屬線（Interconnects），透過不同層的金屬與微小導通孔將數以億計的電晶體連接起來，形成完整的電路。
 
 ## 3. Synthesis 與等價性驗證
 
