@@ -60,6 +60,10 @@
 - IP — Intellectual Property, 矽智財: 可重用的設計; 可能以 RTL, netlist 或固定實體 macro 等形式交付
 - PPA — Power, Performance, Area, 功耗, 效能, 面積: 實作的主要取捨; 改善其中一項可能犧牲另一項
 - PVT — Process, Voltage, Temperature, 製程, 電壓, 溫度: 影響元件速度, 功耗及可靠度的分析條件
+    - worst for Setup: SS / 0.9 V / 105°C
+    - worst for Hold: FF / 1.1 V / -40°C
+    - worst Leakage: FF / 1.1 V / 105°C
+    - nominal Power: TT / 1.0 V / 25°C
 - Corner, 分析角落: 一組製程／電壓／溫度或互連條件
     - 最快工作點 (Best-case Corner): FF (製程最快) + 最高電壓 + 最低溫度 -> Hold time violation check
     - 最慢工作點 (Worst-case Corner): SS (製程最慢) + 最低電壓 + 最高溫度 -> Setup time violation check
@@ -67,6 +71,10 @@
 - RC corner, 互連角落: 描述金屬與介電層變異造成的電阻／電容條件
 - Characterization, 元件特性化: 在不同輸入 slew, 輸出 load 與條件下建立 cell 時序／功耗模型
 - LVT／SVT／HVT — Low／Standard／High Vt: 一般而言低 Vt 較快但漏電較高, 需依實際 library 判斷
+    - In standard cell library design, LVT, SVT and HVT variants of the same logic gate share the exact same physical layout, footprint, and internal metal/local interconnect widths.
+    - the only change is the more dopement on substrate, for n mos, it creates more free holes and require larger positive voltage to push it downwards
+- Drive Strength Variants (e.g., X1 vs. X4): Higher drive-strength cells use wider transistors or multiple parallel transistor fingers
+    - often require wider internal metal/local interconnects and wider power rails to prevent electromigration.
 - NLDM — Nonlinear Delay Model, 非線性延遲模型: 常用查表方式, 以輸入轉換時間與輸出負載等估計延遲
     - NLDM 在先進製程（如高阻抗的奈米級導線）中精準度不足，因此現代 .lib 大多會同時包含 CCS (Synopsys) 或 ECSM (Cadence)。
 - CCS — Composite Current Source: 以電流源等方式表達 cell 行為的模型, 用於更精細的時序／雜訊分析
@@ -75,6 +83,7 @@
 - MOL / MEOL（Mid-End of Line，中段製程）: 在電晶體做好後，製作接觸窗（Contact）與閘極（Gate）等連接結構，將底層的電晶體引出訊號。
     - 早期或較舊的製程中通常沒有獨立的中段，直接進入金屬線階段。
 - BEOL（Back-End of Line，後段製程）: 在電晶體上方一層一層疊上導電金屬線（Interconnects），透過不同層的金屬與微小導通孔將數以億計的電晶體連接起來，形成完整的電路。
+- Streamed polygons: 最終匯出到 GDSII 裡的實體幾何多邊形
 
 ## 3. Synthesis 與等價性驗證
 
