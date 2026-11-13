@@ -196,6 +196,14 @@
 - Tap／Well-tie cell, 井接觸元件: 把 well／substrate 接到適當電位, 滿足製程與可靠度要求
 - Endcap cell, 列端元件: 放在 row 邊界以滿足井, implant 等實體規則; 內容依 library 而定
 - Tie-high／Tie-low cell, 常數元件: 以 library 允許的方式提供邏輯 1／0, 不是隨意把訊號 pin 直接接到電源
+- Power-Domain Isolation
+    - 當晶片中某個電源域（Power Domain）為了省電而進入斷電狀態時，它的輸出端會處於浮接（Floating）或未知（X）的狀態。如果這個不穩定的訊號直接傳送到另一個仍在正常供電的電源域，就會導致接收端的邏輯閘產生嚴重的 crowbar current，甚至造成邏輯誤動作。
+    - 運作方式：Isolation Cell 會放在斷電區塊的輸出邊界上。當控制訊號（Isolation Enable）啟動時，它會將輸出端強制「箝位（Clamp）」在一個已知的安全準位（固定為 0 或 1），藉此保護後端正常運作的電路。
+- Level Shifting (電平轉換 或 準位轉換)
+    - Low-to-High（低轉高）：這是最關鍵的情況。如果直接用 0.7V 的高電位去驅動 1.2V 的邏輯閘，可能無法完全關閉 1.2V 端邏輯閘內的 PMOS，進而引發持續性的 crowbar current（短路電流） 與漏電。Level Shifter 會將 0.7V 的訊號安全地放大到 1.2V。
+    - High-to-Low（高轉低）：主要是為了避免過高的輸入電壓損壞低壓元件的閘極氧化層（Gate Oxide），同時確保時序（Timing）正確。
+
+- crowbar current, 穿通電流/直通電流/撬棒電流: 在互補式金氧半導體（CMOS）電路中，當輸入訊號（如 Clock 或 Data）在 0 與 1 之間切換時，NMOS 和 PMOS 電晶體會有一小段時間同時處於導通（On）狀態。此時，電源與接地之間會形成一條低阻抗的暫時導通通路，產生一股短暫的電流直接灌入地端的 crowbar current
 
 ## 7. Placement 與實體最佳化
 
@@ -242,6 +250,7 @@
 - Metal layer, 金屬層: 例如 M1, M2, 承載訊號與供電連線; 不同顏色常代表不同層
 - Via, 跨層導通結構: 連接不同金屬層; 與同層平面交叉不同
 - Pin access, pin 可達性: router 能否合法接到 cell／macro 的 pin
+- detours: 訊號線在實際繞線時，因為受到阻礙而無法走最短路徑，被迫多繞了一大圈才連到終點的現象
 - Open／Short, 斷路／短路: 應相連卻未連接, 或不應相連卻接在一起
 - Parasitics, 寄生效應／元件: 實際導線帶來的電阻, 電容等效應, 不能把線當作零延遲
 - RC — Resistance-Capacitance, 電阻／電容: 影響互連延遲, slew 與耦合
@@ -249,6 +258,7 @@
 - SPEF — Standard Parasitic Exchange Format: 用於交換 net 寄生電阻／電容等資料, 供 timing／power 工具讀取
 - Post-route／Post-layout, 繞線後／版圖後: 常指利用較完整實體資訊分析; 仍需確認使用哪一版 extraction 與 netlist
 - Coupling capacitance, 耦合電容: 相鄰導線間的電容, 使其他訊號切換影響本線路
+- Decoupling Capacitance (Decap) Placement
 - SI — Signal Integrity, 訊號完整性: 檢查耦合, 雜訊及波形影響等問題
 - Crosstalk, 串擾: aggressor 的切換透過耦合影響 victim, 可能改變延遲或產生 noise
 - Aggressor／Victim, 干擾源／受干擾線: 串擾分析中的兩種相對角色
@@ -285,6 +295,53 @@
 - Waiver, 豁免: 某項違規在有理由與審核紀錄下被接受; 不是關閉訊息就當作通過
 
 注意: router DRC = 0, KLayout DRC = 0, LVS clean 與 timing clean 是不同結論
+
+## PPA 架構優化
+
+- Low-Power optimization
+  - Clock Gating：透過 ICG (Integrated Clock Gating) Cell 切斷閒置電路的 Clock 訊號，阻止 Flip-Flop 翻轉。
+    - 大幅降低 Dynamic Power（動態功耗）（約佔系統 30%~50%），喚醒極快（1 Cycle）、無狀態遺失、面積成本極低。
+    - 實作分級：
+      - Auto：EDA 工具自動針對單一 Register 的 `if (en)` 插入（保守、安全）。
+      - Manual / Hierarchical：RTL 階層式規劃，在整個 Module 或大區塊 FSM 閒置時主動關閉 Clock（省電效益最大）。
+  - Power Gating：透過 Power Switch 切斷閒置模組的供電（VDD / VSS）：同時消除 Static Power 與動態功耗
+    - 代價：喚醒延遲極長（數十至數百 Cycles）、資料會遺失、面積與驗證複雜度大增。
+    - 必要配套：需撰寫 UPF / CPF 檔案，並加入 Isolation Cell（防止浮接訊號干擾）與 Retention Register（保留關鍵狀態）。
+    - 常見應用：手機 SoC（獨立開關 GPU/NPU/ISP）、IoT/MCU（Deep Sleep + Always-On Domain）、高速介面（PCIe L1.2/L2）。
+  - Operand Isolation（運算元隔離）：在大型組合邏輯（如乘法器、ALU）輸入端加設遮罩邏輯（如 AND 閘 / Latch），當運算結果不被採用時鎖住輸入資料。
+    - 效益：防止資料在閒置運算單元內部無意義翻轉，降低動態功耗。
+
+- Low-Area optimization
+  - Resource Sharing：將不同時間點（不同 Clock Cycle）執行的相同運算（如乘法、加法）合併，共用同一顆運算單元。
+    - 代價：需在輸入端增加多工器（MUX），會增加些許路徑延遲與控制邏輯。
+  - Folding / Iterative Architecture：將原本單一 Cycle 平行展開的運算，改為單一硬體分多個 Cycle 循序完成（以時間換取空間）。
+    - 代價：Latency（延遲）大幅增加，Throughput（吞吐量）下降。
+  - Bit-width Optimization（位元寬度最佳化）：精準分析變數數值範圍，削減冗餘 Bit 數；定點數（Fixed-point）運算中適時採用 Truncation（無條件捨去）或 Rounding（四捨五入）。
+    - 效益：直接等比例縮小加法器、乘法器與暫存器的面積。
+  - Memory Sharing & Register File（記憶體替換與共用）: 大容量資料儲存改用高密度 SRAM 取代 Flip-Flop；生命週期不重疊的緩衝區共用同一塊 Memory Space。
+
+- High-Performance optimization
+  - Pipelining（管線化）: 在過長的組合邏輯路徑（Critical Path）中插入 Register，將單一長路徑切割為多段短路徑。
+    - 效益：大幅提高系統 最高工作頻率（Fmax）。
+    - 代價：增加 Latency（總執行 Cycle 數變多）與 Register 面積。
+  - Parallelism & Loop Unrolling（平行化與迴圈展開）：複製多份相同硬體，在同一個 Clock Cycle 同時處理多筆資料。
+    - 效益：成倍提升 Throughput（單位時間資料吞吐量）。
+    - 代價：晶片面積與動態功耗成倍數暴增。
+  - Retiming（暫存器重定時）：在不改變整體功能與 Latency 的前提下，移動組合邏輯前後的 Register 位置，平衡各級之間的組合邏輯延遲。
+    - 效益：消除局部瓶頸路徑，提升 Fmax，且不增加額外 Cycle 數。
+  - Look-ahead / Speculative Execution（前瞻 / 預測運算）：打破循序相依性（例如 Carry Look-ahead Adder 超前進位），或預先將分支條件的「所有可能結果」同時算出，最後再用 MUX 挑選。
+    - 效益：消除等待時間，大幅縮短 Critical Path 延遲。
+
+## design choice and best practice
+
+- Power-strap intersection（電源網格交叉點）
+    將 Gating Cell（如 Clock Gating Cell 或 Power Gating Switch） 擺放在 Power-strap intersection 附近，主要有以下三個關鍵好處：
+    - 降低局部動態壓降（Dynamic IR Drop）
+    - 維持時脈品質，減少 Clock Jitter 與 Skew
+    - 強化抗電致遷移（Electromigration, EM）能力
+        - 大電流切換容易讓細小的標準元件電源軌（Standard Cell Rail，通常在 M1/M2）承受過高的電流密度。
+        - 靠近 Via array（打在 Strap 交叉點上的電源通孔陣列）可以提供多條並聯的電流路徑，有效分散電流密度，降低局部發生 EM 損壞的風險。
+
 
 ## 11. others
 
