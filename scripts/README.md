@@ -3,7 +3,7 @@
 - `common/audit.tcl`：執行 placement／final 的電源檢查與報表輸出。
 - `common/check_floorplan.tcl`：記錄 macro 位置並檢查 floorplan 電源連接。
 - `common/check_power.tcl`：重新連接電源並檢查 VDD／VSS 連通性。
-- `common/pdn_sram.tcl`：建立 standard cells 與原生方向 SRAM 的電源網格。
+- `common/pdn_sram.tcl`：建立 standard cells 與 SRAM 電源網格，支援原生及旋轉方向。
 - `common/pre_cts.tcl`：設定 CTS 前的 repair buffer 預算與 legalization 範圍。
 - `common/repair_budget.tcl`：調整 timing repair 的 buffer 預算與繞線前設定。
 - `common/repair_hold.tcl`：修復 hold timing，重新合法化擺放並視需要更新繞線。
