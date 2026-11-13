@@ -66,15 +66,15 @@ abstract:
 	    test -s $(RESULTS)/6_final.$$ext || { echo "Missing final $$ext; complete this block first."; exit 1; }; \
 	done
 	$(DOCKER) $(IMAGE) make $(FLOW_ARGS) run \
-	    RUN_SCRIPT=/work/scripts/export_macro.tcl RUN_LOG_NAME_STEM=export_macro
+	    RUN_SCRIPT=/work/scripts/flow/export_macro.tcl RUN_LOG_NAME_STEM=export_macro
 
 # Expand completed macro geometry in a separate GUI database; no P&R is rerun.
 .PHONY: details gui-detail web-gui-detail
 details:
-	@test -n "$(strip $(DETAIL_BLOCKS))" || { echo "Select a hierarchical preset with DETAIL_BLOCKS (SM: FLOW_VARIANT=sp4_hard_l16)."; exit 1; }
+	@test -n "$(strip $(DETAIL_BLOCKS))" || { echo "Select a hierarchical preset with DETAIL_BLOCKS (SM: FLOW_VARIANT=hard_sp_stack)."; exit 1; }
 	@test -s $(RESULTS)/6_final.odb || { echo "Complete the parent flow first."; exit 1; }
 	$(DOCKER) $(IMAGE) make $(FLOW_ARGS) run \
-	    RUN_SCRIPT=/work/scripts/detail_view.tcl RUN_LOG_NAME_STEM=detail_view
+	    RUN_SCRIPT=/work/scripts/flow/detail_view.tcl RUN_LOG_NAME_STEM=detail_view
 
 gui-detail:
 	@test -s $(RESULTS)/6_final_detailed.odb || { echo "Run make details DESIGN=$(DESIGN) first."; exit 1; }
@@ -93,7 +93,7 @@ images:
 	$(DOCKER) -e QT_QPA_PLATFORM=offscreen -e RESULTS_DIR=$(RUN_DIR)/results \
 	    -e REPORTS_DIR=$(RUN_DIR)/reports -e IMAGE_DB=$(RUN_DIR)/results/$(IMAGE_STAGE).odb \
 	    -e IMAGE_PREFIX=$(IMAGE_PREFIX) $(IMAGE) bash -c \
-	    'source /OpenROAD-flow-scripts/env.sh; openroad -exit /work/scripts/module_view.tcl' \
+	    'source /OpenROAD-flow-scripts/env.sh; openroad -exit /work/scripts/reports/module_view.tcl' \
 	    > $(LOGS)/module_view.log 2>&1 || { tail -30 $(LOGS)/module_view.log; exit 1; }
 	@echo "Module view: $(REPORTS)/$(IMAGE_PREFIX)_modules.webp"
 

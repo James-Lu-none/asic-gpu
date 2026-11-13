@@ -1,3 +1,6 @@
 /artifacts/
 *.vcd
 __pycache__/
+
+# Local cleanup provenance, not a build input.
+/RTL_RESET.json

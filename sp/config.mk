@@ -9,6 +9,6 @@ export VERILOG_FILES := $(filter-out /work/sram/cache_line_ram.sv,$(VERILOG_FILE
 SM_MACROS = $(VRF_MACRO) $(IRAM_MACRO)
 
 export SDC_FILE = /work/sp/constraints.sdc
-export IO_CONSTRAINTS = /work/sp/io.tcl
+export IO_CONSTRAINTS = /work/scripts/sp/io_default.tcl
 export CORE_UTILIZATION = 45
 export CORE_ASPECT_RATIO = 1

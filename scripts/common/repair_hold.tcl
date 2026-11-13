@@ -25,4 +25,4 @@ if {$routed} {
 } else {
     report_metrics 4 "cts hold repaired"
 }
-source /work/gpc/check_power.tcl
+source /work/scripts/common/check_power.tcl

@@ -33,17 +33,9 @@ export ADDITIONAL_GDS = $(addsuffix .gds,$(GPC_MACROS))
 
 export SDC_FILE = /work/gpc/constraints/gpc.sdc
 # Nangate45/OpenRAM platform integration, independent of macro placement.
-export FOOTPRINT_TCL = /work/sram/technology.tcl
-export TAPCELL_TCL = /work/gpc/tapcell.tcl
-export PDN_TCL = /work/gpc/pdn.tcl
-export POST_PDN_TCL = /work/gpc/floorplan_checks.tcl
-export POST_DETAIL_PLACE_TCL = /work/gpc/check_power.tcl
-export POST_CTS_TCL = /work/gpc/check_power.tcl
-export POST_GLOBAL_ROUTE_TCL = /work/gpc/check_power.tcl
-export POST_FINAL_REPORT_TCL = /work/scripts/module_view.tcl
-export IO_CONSTRAINTS = /work/gpc/io.tcl
-export MACRO_ROWS_HALO_X = 4
-export MACRO_ROWS_HALO_Y = 4
+include $(dir $(lastword $(MAKEFILE_LIST)))../config/nangate45_sram.mk
+export POST_FINAL_REPORT_TCL = /work/scripts/reports/module_view.tcl
+export IO_CONSTRAINTS = /work/scripts/gpc/io.tcl
 export CORE_UTILIZATION = 35
 export PLACE_DENSITY = 0.55
 export TNS_END_PERCENT = 100
