@@ -38,3 +38,20 @@ add_pdn_stripe -grid sram -layer metal6 -width 1.0 -pitch 12 -offset 2
 add_pdn_connect -grid sram -layers {metal4 metal5}
 add_pdn_connect -grid sram -layers {metal5 metal6}
 add_pdn_connect -grid sram -layers {metal6 metal7}
+
+# Automatic macro placement may quarter-turn SRAMs. Build a separate grid only
+# for masters actually placed that way; fixed/native layouts are unchanged.
+set rotated_sram_masters {}
+foreach inst [[ord::get_db_block] getInsts] {
+    if {[[$inst getMaster] isBlock] && [$inst getOrient] in {R90 R270 MXR90 MYR90}} {
+        lappend rotated_sram_masters [[$inst getMaster] getName]
+    }
+}
+if {[llength $rotated_sram_masters]} {
+    define_pdn_grid -name rotated_sram -voltage_domains CORE -macro \
+        -cells [lsort -unique $rotated_sram_masters] \
+        -orient {R90 R270 MXR90 MYR90} -halo {4 4 4 4}
+    add_pdn_stripe -grid rotated_sram -layer metal6 -width 1 -pitch 12 -offset 2
+    add_pdn_connect -grid rotated_sram -layers {metal4 metal6}
+    add_pdn_connect -grid rotated_sram -layers {metal6 metal7}
+}
