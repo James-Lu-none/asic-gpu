@@ -1,15 +1,14 @@
-SM_NUM_SPS := 4
-SM_NUM_LANES := 16
+HARD_SP_CONFIG_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
 include $(dir $(lastword $(MAKEFILE_LIST)))../config.mk
 
-ifneq ($(SM_NUM_SPS):$(SM_NUM_LANES),4:16)
+ifneq ($(GPU_NUM_SPS):$(GPU_NUM_LANES),4:16)
 $(error hard_sp_stack requires four 16-lane SP macros; rebuild SP views for other dimensions)
 endif
 
 # SP is a fixed 16-lane hard macro; synthesize only the SM shell and shared L1.
-SP_MACRO_DIR ?= /work/artifacts/asic/sp/sram_bands/results
+SP_MACRO_DIR ?= /work/artifacts/asic/sp/free_right_io/results
 SM_SHELL_SOURCES := $(filter-out $(SM_RTL_DIR)/sm/sp/%,$(SM_SOURCES))
-export VERILOG_FILES := $(SM_PACKAGE) \
+export VERILOG_FILES := $(GPU_HEADERS) \
     $(patsubst $(SM_RTL_DIR)/%,/hardware/rtl/%,$(SM_SHELL_SOURCES)) \
     /work/sram/cache_line_ram.sv /work/sm/sp_macro.sv
 export ADDITIONAL_LIBS = $(SP_MACRO_DIR)/sp_pd_top_typ.lib \
@@ -39,7 +38,7 @@ export DIE_AREA = 0 0 1571 4095
 export CORE_AREA = 20 20 1551 4075
 export MACRO_PLACEMENT_TCL = /work/scripts/sm/place_hard_sp_stack.tcl
 export PDN_TCL = /work/scripts/sm/pdn_hard_sp.tcl
-export IO_CONSTRAINTS = /work/scripts/sm/io_right.tcl
+export IO_CONSTRAINTS = /work/scripts/common/io_right.tcl
 export COMPACT_CHANNEL = 40
 export COMPACT_EDGE = 40
 export L1_CLUSTER_ORIENT = R270

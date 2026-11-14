@@ -1,7 +1,8 @@
 # Standalone SRAM-boundary blocks; no GPC RTL, IO or constraints are imported.
 export PLATFORM = nangate45
 HARDWARE_ROOT ?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../../fpga-gpu-hardware)
-include $(dir $(lastword $(MAKEFILE_LIST)))views.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../config/gpu_arch.mk
+include $(dir $(lastword $(MAKEFILE_LIST)))../sram/views.mk
 DESIGN_ARGS = SRAM_ROOT=$(SRAM_ROOT)
 export VERILOG_INCLUDE_DIRS = /hardware/rtl/common
 export SYNTH_HDL_FRONTEND = slang
