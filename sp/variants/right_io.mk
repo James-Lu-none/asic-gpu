@@ -1,7 +1,8 @@
 # SP SRAM bands with all signal IO on the right and C-shaped row exclusions.
 include $(dir $(lastword $(MAKEFILE_LIST)))sram_bands.mk
 export MACRO_PLACEMENT_TCL = /work/scripts/sp/place_right_io.tcl
-export IO_CONSTRAINTS = /work/scripts/sp/io_right.tcl
+export IO_CONSTRAINTS = /work/scripts/common/io_right.tcl
+export PLACE_PINS_ARGS = -min_distance 1 -min_distance_in_tracks
 export SP_IO_CORRIDOR = 40
 export SP_LOGIC_GAP = 8
 export SP_KEEP_HALO = 4

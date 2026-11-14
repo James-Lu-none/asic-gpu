@@ -5,7 +5,8 @@ export MACRO_PLACEMENT_TCL =
 # Nangate45 defaults to 44.8 x 30.24um channels, which over-inflate the
 # movable macro area for this compact die. Match the existing 8um SRAM gap.
 export RTLMP_MIN_CHANNEL_SIZE = 8 8
-export IO_CONSTRAINTS = /work/scripts/sp/io_right.tcl
+export IO_CONSTRAINTS = /work/scripts/common/io_right.tcl
+export PLACE_PINS_ARGS = -min_distance 1 -min_distance_in_tracks
 export SP_BANK_GAP =
 export SP_EDGE =
 export PRE_CTS_TCL = /work/scripts/common/pre_cts.tcl
