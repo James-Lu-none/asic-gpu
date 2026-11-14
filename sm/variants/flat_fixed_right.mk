@@ -1,8 +1,6 @@
 # Flat 4 x 16-lane SM control: SRAM macros only, no hardened SP views.
-SM_NUM_SPS := 4
-SM_NUM_LANES := 16
 include $(dir $(lastword $(MAKEFILE_LIST)))../config.mk
-ifneq ($(SM_NUM_SPS):$(SM_NUM_LANES),4:16)
+ifneq ($(GPU_NUM_SPS):$(GPU_NUM_LANES),4:16)
 $(error flat_fixed_right requires four 16-lane SPs)
 endif
 
@@ -16,7 +14,7 @@ export FLAT_SP_HEIGHT = 973.64
 export FLAT_EDGE = 40
 export FLAT_CHANNEL = 40
 export MACRO_PLACEMENT_TCL = /work/scripts/sm/place_flat_sram.tcl
-export IO_CONSTRAINTS = /work/scripts/sm/io_right.tcl
+export IO_CONSTRAINTS = /work/scripts/common/io_right.tcl
 export PLACE_PINS_ARGS = -min_distance 2
 export PDN_TCL = /work/scripts/sm/pdn_flat.tcl
 

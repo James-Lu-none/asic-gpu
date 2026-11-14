@@ -3,29 +3,8 @@ export DESIGN_NICKNAME = sm
 export PLATFORM = nangate45
 HARDWARE_ROOT ?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../../fpga-gpu-hardware)
 SM_RTL_DIR := $(HARDWARE_ROOT)/rtl
-SM_CONFIG_FILE := $(lastword $(MAKEFILE_LIST))
-
-# ASIC-only dimensions; do not edit the shared FPGA package.
-SM_NUM_SPS ?= 2
-SM_NUM_LANES ?= 4
-DESIGN_ARGS = SM_NUM_SPS=$(SM_NUM_SPS) SM_NUM_LANES=$(SM_NUM_LANES) SRAM_ROOT=$(SRAM_ROOT)
-SM_PACKAGE := $(or $(WORK_HOME),/work/artifacts/asic/sm/$(or $(FLOW_VARIANT),base))/generated/sp$(SM_NUM_SPS)-lanes$(SM_NUM_LANES)/gpu_pkg.sv
-
-# ORFS builds this source prerequisite before elaboration. Preserve every other
-# shared package definition; include the dimensions in the path to avoid stale
-# package contents when switching configurations.
-$(SM_PACKAGE): $(SM_RTL_DIR)/gpu_pkg.sv $(SM_CONFIG_FILE)
-	@test "$(SM_NUM_SPS)" -ge 1 -a "$(SM_NUM_LANES)" -ge 1 || { echo "SM_NUM_SPS and SM_NUM_LANES must be positive integers."; exit 1; }
-	mkdir -p $(dir $@)
-	sed -E \
-	    -e 's/parameter[[:space:]]+NUM_SMS[[:space:]]*=[^;]+;/parameter NUM_SMS = 1;/' \
-	    -e 's/parameter[[:space:]]+NUM_SUB_PARTITIONS[[:space:]]*=[^;]+;/parameter NUM_SUB_PARTITIONS = $(SM_NUM_SPS);/' \
-	    -e 's/parameter[[:space:]]+NUM_LANES[[:space:]]*=[^;]+;/parameter NUM_LANES = $(SM_NUM_LANES);/' \
-	    $< > $@.tmp
-	@for assignment in 'NUM_SMS = 1' 'NUM_SUB_PARTITIONS = $(SM_NUM_SPS)' 'NUM_LANES = $(SM_NUM_LANES)'; do \
-	    grep -Fq "parameter $$assignment;" $@.tmp || { rm -f $@.tmp; echo "Unsupported shared gpu_pkg.sv parameter declarations."; exit 1; }; \
-	done
-	mv $@.tmp $@
+include $(dir $(lastword $(MAKEFILE_LIST)))../config/gpu_arch.mk
+DESIGN_ARGS = SRAM_ROOT=$(SRAM_ROOT)
 
 SM_SOURCES := $(wildcard $(SM_RTL_DIR)/common/*.sv) \
     $(wildcard $(SM_RTL_DIR)/sm/*.sv) \
@@ -36,7 +15,7 @@ SM_SOURCES := $(filter-out \
     $(SM_RTL_DIR)/sm/sp/instruction_ram.sv \
     $(SM_RTL_DIR)/common/cache_line_ram.sv,$(SM_SOURCES))
 export VERILOG_INCLUDE_DIRS = /hardware/rtl/common
-export VERILOG_FILES = $(SM_PACKAGE) \
+export VERILOG_FILES = $(GPU_HEADERS) \
     $(patsubst $(SM_RTL_DIR)/%,/hardware/rtl/%,$(SM_SOURCES)) \
     /work/sram/vector_regfile_ram.sv \
     /work/sram/instruction_ram.sv \

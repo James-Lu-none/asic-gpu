@@ -1,6 +1,4 @@
 # Reuse the same RTL package generation, technology and SRAM integration as SM.
-SM_NUM_SPS := 1
-SM_NUM_LANES ?= 16
 include $(dir $(lastword $(MAKEFILE_LIST)))../sm/config.mk
 
 export DESIGN_NAME = sp_pd_top

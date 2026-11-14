@@ -1,5 +1,8 @@
 # 16-lane SP with fixed top/bottom VRF bands and left IRAM.
 include $(dir $(lastword $(MAKEFILE_LIST)))../config.mk
+ifneq ($(GPU_NUM_LANES),16)
+$(error This SP floorplan requires NUM_LANES=16 in gpu_defines.vh)
+endif
 # Repair beyond zero before detailed routing; the SDC limits are unchanged.
 export HOLD_SLACK_MARGIN = 0.05
 export POST_CTS_TCL = /work/scripts/common/repair_hold.tcl

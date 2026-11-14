@@ -1,7 +1,8 @@
 `timescale 1ns / 1ps
 // ASIC instruction storage, preserving the shared synchronous RAM boundary.
+`include "gpu_defines.vh"
 module instruction_ram #(
-    parameter integer DEPTH = gpu_pkg::IRAM_DEPTH,
+    parameter integer DEPTH = `IRAM_DEPTH,
     parameter integer ADDR_W = 12
 )(
     input wire clk,

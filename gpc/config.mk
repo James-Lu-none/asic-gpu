@@ -3,7 +3,8 @@ export DESIGN_NICKNAME = gpc
 export PLATFORM = nangate45
 HARDWARE_ROOT ?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../../fpga-gpu-hardware)
 GPC_RTL_DIR := $(HARDWARE_ROOT)/rtl
-GPC_SOURCES := $(GPC_RTL_DIR)/gpu_pkg.sv \
+include $(dir $(lastword $(MAKEFILE_LIST)))../config/gpu_arch.mk
+GPC_SOURCES := \
     $(wildcard $(GPC_RTL_DIR)/common/*.sv) \
     $(wildcard $(GPC_RTL_DIR)/sm/*.sv) \
     $(wildcard $(GPC_RTL_DIR)/sm/sp/*.sv) \
@@ -17,7 +18,7 @@ GPC_SOURCES := $(filter-out \
     $(GPC_RTL_DIR)/common/cache_line_ram.sv \
     , $(GPC_SOURCES))
 export VERILOG_INCLUDE_DIRS = /hardware/rtl/common
-export VERILOG_FILES = $(patsubst $(GPC_RTL_DIR)/%,/hardware/rtl/%,$(GPC_SOURCES)) \
+export VERILOG_FILES = $(GPU_HEADERS) $(patsubst $(GPC_RTL_DIR)/%,/hardware/rtl/%,$(GPC_SOURCES)) \
     /work/sram/vector_regfile_ram.sv \
     /work/sram/instruction_ram.sv \
     /work/sram/cache_line_ram.sv

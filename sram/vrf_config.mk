@@ -2,7 +2,7 @@
 include $(dir $(lastword $(MAKEFILE_LIST)))block_config.mk
 export DESIGN_NAME = vector_regfile
 export DESIGN_NICKNAME = vrf
-export VERILOG_FILES = /hardware/rtl/gpu_pkg.sv \
+export VERILOG_FILES = $(GPU_HEADERS) \
     /hardware/rtl/common/gpu_interfaces.sv /hardware/rtl/sm/sp/vector_regfile.sv \
     /work/sram/vector_regfile_ram.sv
 export SDC_FILE = /work/sram/vrf.sdc
