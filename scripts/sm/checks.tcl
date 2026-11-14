@@ -1,3 +1,3 @@
-# Placement/final entry point shared by right-IO SM variants.
+# Placement/final entry point shared by SM IO variants.
 source /work/scripts/common/audit.tcl
-source /work/scripts/sm/check_right_io.tcl
+source /work/scripts/sm/check_io.tcl

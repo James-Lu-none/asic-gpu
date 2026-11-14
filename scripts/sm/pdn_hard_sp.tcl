@@ -16,7 +16,7 @@ add_pdn_connect -grid core -layers {metal7 metal8}
 add_pdn_connect -grid core -layers {metal8 metal9}
 
 define_pdn_grid -name sp -voltage_domains CORE -macro -cells {sp_pd_top} \
-    -grid_over_pg_pins -orient {R0} -halo {4 4 4 4}
+    -grid_over_pg_pins -orient {R0 MY} -halo {4 4 4 4}
 # Parent M8 straps avoid SP obstructions; this grid only connects SP PG pins.
 add_pdn_connect -grid sp -layers {metal7 metal8}
 add_pdn_connect -grid sp -layers {metal8 metal9}

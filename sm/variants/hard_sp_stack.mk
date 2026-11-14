@@ -34,8 +34,6 @@ export DETAIL_LEFS = $(VRF_MACRO).lef \
 DESIGN_ARGS += SP_MACRO_DIR=$(SP_MACRO_DIR)
 
 # Four hard SPs in a vertical stack with a central, rotated shared L1 cluster.
-export DIE_AREA = 0 0 1571 4095
-export CORE_AREA = 20 20 1551 4075
 export MACRO_PLACEMENT_TCL = /work/scripts/sm/place_hard_sp_stack.tcl
 export PDN_TCL = /work/scripts/sm/pdn_hard_sp.tcl
 export IO_CONSTRAINTS = /work/scripts/common/io_right.tcl
@@ -50,3 +48,16 @@ export LEC_CHECK = 1
 export PRE_CTS_TCL = /work/scripts/common/pre_cts.tcl
 export PRE_GLOBAL_ROUTE_TCL = /work/scripts/common/repair_budget.tcl
 export POST_FINAL_REPORT_TCL = /work/scripts/sm/checks.tcl
+
+# Keep stack height tied to actual IP dimensions; grow only the right-side shell.
+SM_RIGHT_SPACE ?= 80
+# Resolve /work paths both in the host wrapper and inside ORFS.
+STACK_SP_LEF := $(if $(wildcard $(SP_MACRO_DIR)/sp_pd_top.lef),$(SP_MACRO_DIR)/sp_pd_top.lef,$(patsubst /work/%,$(HARD_SP_CONFIG_ROOT)/%,$(SP_MACRO_DIR)/sp_pd_top.lef))
+STACK_L1_LEF := $(if $(wildcard $(L1_MACRO).lef),$(L1_MACRO).lef,$(patsubst /work/%,$(HARD_SP_CONFIG_ROOT)/%,$(L1_MACRO).lef))
+STACK_DIMENSIONS := $(shell python3 $(HARD_SP_CONFIG_ROOT)/scripts/flow/stack_dimensions.py --sp-lef $(STACK_SP_LEF) --l1-lef $(STACK_L1_LEF) --right-space $(SM_RIGHT_SPACE) --edge $(COMPACT_EDGE) --channel $(COMPACT_CHANNEL))
+ifneq ($(words $(STACK_DIMENSIONS)),4)
+$(error Cannot size hard_sp_stack; export SP IP first and check SM_RIGHT_SPACE)
+endif
+export DIE_AREA = 0 0 $(word 1,$(STACK_DIMENSIONS)) $(word 2,$(STACK_DIMENSIONS))
+export CORE_AREA = 20 20 $(word 3,$(STACK_DIMENSIONS)) $(word 4,$(STACK_DIMENSIONS))
+DESIGN_ARGS += SM_RIGHT_SPACE=$(SM_RIGHT_SPACE)
