@@ -19,6 +19,8 @@ proc module_view::save {} {
       set group $prefix
     } elseif {[regexp {^(u_sp)(\.|$)} $path -> prefix]} {
       set group $prefix
+    } elseif {[regexp {^(.*?gen_sm_array\[[0-9]+\]\.u_sm)(\.|/|$)} $path -> prefix]} {
+      set group $prefix
     } elseif {[regexp {^(.*?u_l[12]_cache)(\.|$)} $path -> prefix]} {
       set group $prefix
     }
@@ -89,6 +91,7 @@ proc module_view::save {} {
     set x [ord::dbu_to_microns [$die xMin]]
     set y [ord::dbu_to_microns [expr {[$die yMax] - ($index + 1) * $dy}]]
     set title $group
+    regsub {^gen_sm_array\[([0-9]+)\]\.u_sm$} $title {SM\1} title
     regsub {^u_sp$} $title {SP0} title
     regsub {gen_sub_partitions\[([0-9]+)\]\.u_sp$} $title {SP\1} title
     regsub {gen_sm_array\[([0-9]+)\]\.u_sm\.} $title {SM\1/} title
