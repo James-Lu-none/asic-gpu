@@ -1,5 +1,6 @@
 # tcl scripts
 
+- `common/io_right.tcl`：將 SP／SM 所有訊號 pins 放在右側，不依賴記憶體介面名稱。
 - `common/audit.tcl`：執行 placement／final 的電源檢查與報表輸出。
 - `common/check_floorplan.tcl`：記錄 macro 位置並檢查 floorplan 電源連接。
 - `common/check_power.tcl`：重新連接電源並檢查 VDD／VSS 連通性。
