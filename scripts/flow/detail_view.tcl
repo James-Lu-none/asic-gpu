@@ -10,19 +10,50 @@ namespace eval detail_view {
     variable decoder [odb::dbWireDecoder]
     variable encoder [odb::dbWireEncoder]
     variable verifier [odb::dbWireDecoder]
+    variable via_signatures [dict create]
 }
 proc detail_view::layer {tech original} {
     set result [$tech findLayer [$original getName]]
     if {$result eq "NULL"} {error "Missing layer: [$original getName]"}
     return $result
 }
-proc detail_view::tech_via {tech original} {
+# A mirrored tech via is represented by a block via with reflected geometry.
+proc detail_view::tech_via {tech original {parent NULL} {sx 1}} {
     set result [$tech findVia [$original getName]]
     if {$result eq "NULL"} {error "Missing tech via: [$original getName]"}
-    return $result
+    if {$sx == 1} {return $result}
+    set name "detail/MY/tech/[$original getName]"
+    set via [$parent findVia $name]
+    if {$via eq "NULL"} {
+        set via [odb::dbVia_create $parent $name]
+        foreach box [$original getBoxes] {
+            odb::dbBox_create $via [layer $tech [$box getTechLayer]] \
+                [expr {-[$box xMax]}] [$box yMin] [expr {-[$box xMin]}] [$box yMax]
+        }
+    }
+    return $via
+}
+proc detail_view::via_signature {via sx} {
+    variable via_signatures
+    set key "$via/$sx"
+    if {[dict exists $via_signatures $key]} {return [dict get $via_signatures $key]}
+    set boxes {}
+    foreach box [$via getBoxes] {
+        set x0 [$box xMin]; set x1 [$box xMax]
+        if {$sx == -1} {lassign [list [expr {-$x1}] [expr {-$x0}]] x0 x1}
+        lappend boxes [list [[$box getTechLayer] getName] $x0 [$box yMin] $x1 [$box yMax]]
+    }
+    set value [lsort $boxes]
+    dict set via_signatures $key $value
+    return $value
+}
+proc detail_view::rect_xform {rect sx} {
+    if {$sx == 1} {return $rect}
+    lassign $rect x0 y0 x1 y1
+    return [list [expr {-$x1}] $y0 [expr {-$x0}] $y1]
 }
 # Decode physical paths independently of database object/junction IDs.
-proc detail_view::wire_signature {wire {dx 0} {dy 0}} {
+proc detail_view::wire_signature {wire {dx 0} {dy 0} {sx 1}} {
     variable verifier
     set decoder $verifier
     $decoder begin $wire
@@ -33,23 +64,22 @@ proc detail_view::wire_signature {wire {dx 0} {dy 0}} {
             0 {set value [list [[$decoder getLayer] getName] [$decoder getWireType]]}
             1 - 2 - 3 {
                 lassign [$wire getCoord [$decoder getJunctionValue]] x y
-                set value [list [expr {$x-$dx}] [expr {$y-$dy}] [[$decoder getLayer] getName] [$decoder getWireType]]
+                set value [list [expr {($x-$dx)*$sx}] [expr {$y-$dy}] [[$decoder getLayer] getName] [$decoder getWireType]]
             }
             4 {
                 lassign [$decoder getPoint] x y
-                set value [list [expr {$x-$dx}] [expr {$y-$dy}]]
+                set value [list [expr {($x-$dx)*$sx}] [expr {$y-$dy}]]
             }
             5 {
                 lassign [$decoder getPoint_ext] x y ext
-                set value [list [expr {$x-$dx}] [expr {$y-$dy}] $ext]
+                set value [list [expr {($x-$dx)*$sx}] [expr {$y-$dy}] $ext]
             }
-            6 {
-                set via [$decoder getVia]
-                set box [$via getBBox]
-                set value [list [$box xMin] [$box yMin] [$box xMax] [$box yMax] [[$via getBottomLayer] getName] [[$via getTopLayer] getName]]
+            6 {set value [via_signature [$decoder getVia] $sx]}
+            7 {
+                set value [via_signature [$decoder getTechVia] $sx]
+                set op 6 ;# Tech and block vias compare by physical geometry.
             }
-            7 {set value [[$decoder getTechVia] getName]}
-            8 {set value [$decoder getRect]}
+            8 {set value [rect_xform [$decoder getRect] $sx]}
             9 - 10 {continue}
             11 {
                 set rule [$decoder getRule]
@@ -62,7 +92,7 @@ proc detail_view::wire_signature {wire {dx 0} {dy 0}} {
     }
     return $signature
 }
-proc detail_view::wire {source target child tech prefix dx dy vias} {
+proc detail_view::wire {source target child tech prefix dx dy vias sx} {
     variable decoder
     variable encoder
     $decoder begin $source
@@ -100,15 +130,18 @@ proc detail_view::wire {source target child tech prefix dx dy vias} {
         switch $op {
             4 {
                 lassign [$decoder getPoint] x y
-                set junction [$encoder addPoint [expr {$x+$dx}] [expr {$y+$dy}]]
+                set junction [$encoder addPoint [expr {$sx*$x+$dx}] [expr {$y+$dy}]]
             }
             5 {
                 lassign [$decoder getPoint_ext] x y ext
-                set junction [$encoder addPoint [expr {$x+$dx}] [expr {$y+$dy}] $ext]
+                set junction [$encoder addPoint [expr {$sx*$x+$dx}] [expr {$y+$dy}] $ext]
             }
             6 {set junction [$encoder addVia [dict get $vias [[$decoder getVia] getName]] ]}
-            7 {set junction [$encoder addTechVia [tech_via $tech [$decoder getTechVia]]]}
-            8 {$encoder addRect {*}[$decoder getRect]}
+            7 {
+                set via [tech_via $tech [$decoder getTechVia] $child $sx]
+                if {$sx == 1} {set junction [$encoder addTechVia $via]} else {set junction [$encoder addVia $via]}
+            }
+            8 {$encoder addRect {*}[rect_xform [$decoder getRect] $sx]}
             9 {
                 set term [$decoder getITerm]
                 $encoder addITerm [[$child findInst "${prefix}[[$term getInst] getName]"] findITerm [[$term getMTerm] getName]]
@@ -119,7 +152,7 @@ proc detail_view::wire {source target child tech prefix dx dy vias} {
         if {$op in {4 5 6 7}} {dict set junctions [$decoder getJunctionId] $junction}
     }
     $encoder end
-    if {[$source count] != [$target count] || [wire_signature $source] ne [wire_signature $target $dx $dy]} {
+    if {[wire_signature $source] ne [wire_signature $target $dx $dy $sx]} {
         error "Wire geometry changed while copying [[$source getNet] getName]: counts [$source count]/[$target count]"
     }
 }
@@ -140,7 +173,10 @@ proc detail_view::expand {parent source macro} {
     set database [ord::get_db]
     set tech [$parent getTech]
     set prefix "[$macro getName]/"
-    if {[$macro getOrient] ne "R0"} {error "Detail expansion currently requires R0: $prefix"}
+    set orient [$macro getOrient]
+    if {$orient ni {R0 MY}} {error "Detail expansion supports R0/MY: $prefix"}
+    set sx [expr {$orient eq "MY" ? -1 : 1}]
+    set macro_transform [$macro getTransform]
     lassign [$macro getOrigin] dx dy
     # Resolve port aliases before retaining any parent-net handles.
     foreach old_net [$source getNets] {
@@ -180,13 +216,13 @@ proc detail_view::expand {parent source macro} {
     set vias [dict create]
     foreach original [$source getVias] {
         if {[$original isViaRotated]} {error "Rotated block via requires explicit support"}
-        set name "detail/[$source getName]/[$original getName]"
+        set name "detail/[$source getName]/$orient/[$original getName]"
         set via [$parent findVia $name]
         if {$via eq "NULL"} {
             set via [odb::dbVia_create $parent $name]
             foreach box [$original getBoxes] {
-                odb::dbBox_create $via [layer $tech [$box getTechLayer]] \
-                    [$box xMin] [$box yMin] [$box xMax] [$box yMax]
+                lassign [rect_xform [list [$box xMin] [$box yMin] [$box xMax] [$box yMax]] $sx] x0 y0 x1 y1
+                odb::dbBox_create $via [layer $tech [$box getTechLayer]] $x0 $y0 $x1 $y1
             }
         }
         dict set vias [$original getName] $via
@@ -196,9 +232,15 @@ proc detail_view::expand {parent source macro} {
         set master [$database findMaster [[$original getMaster] getName]]
         if {$master eq "NULL"} {error "Missing master: [[$original getMaster] getName]"}
         set inst [odb::dbInst_create $parent $master "${prefix}[$original getName]" [$original isPhysicalOnly]]
-        $inst setOrient [$original getOrient]
-        lassign [$original getOrigin] x y
-        $inst setOrigin [expr {$x+$dx}] [expr {$y+$dy}]
+        set transform [$original getTransform]
+        $transform concat $macro_transform
+        $inst setTransform $transform
+        set old_box [$original getBBox]
+        lassign [rect_xform [list [$old_box xMin] [$old_box yMin] [$old_box xMax] [$old_box yMax]] $sx] x0 y0 x1 y1
+        set actual [$inst getBBox]
+        foreach {coord expected} [list xMin [expr {$x0+$dx}] yMin [expr {$y0+$dy}] xMax [expr {$x1+$dx}] yMax [expr {$y1+$dy}]] {
+            if {$expected != [$actual $coord]} {error "Instance transform mismatch: [$inst getName]"}
+        }
         $inst setPlacementStatus [$original getPlacementStatus]
         foreach old_term [$original getITerms] {
             set old_net [$old_term getNet]
@@ -208,7 +250,7 @@ proc detail_view::expand {parent source macro} {
         }
         incr count
     }
-    puts "Detail $prefix: copied $count instances at offset $dx $dy"
+    puts "Detail $prefix: verified $count instance boxes, orientation $orient, origin $dx $dy"
     set scratch [odb::dbNet_create $parent "${prefix}__detail_wire_tmp__"]
     if {$scratch eq "NULL"} {error "Temporary detail net name is occupied"}
     set wires 0
@@ -217,7 +259,7 @@ proc detail_view::expand {parent source macro} {
         set net [dict get $nets [$original getName]]
         if {[$original getWire] ne "NULL"} {
             set temporary [odb::dbWire_create $scratch]
-            wire [$original getWire] $temporary $parent $tech $prefix $dx $dy $vias
+            wire [$original getWire] $temporary $parent $tech $prefix $dx $dy $vias $sx
             if {[$net getWire] eq "NULL"} {
                 $temporary attach $net
             } else {
@@ -233,15 +275,15 @@ proc detail_view::expand {parent source macro} {
             foreach box [$old_wire getWires] {
                 if {[$box isVia]} {
                     set via [$box getTechVia]
-                    if {$via ne "NULL"} {set via [tech_via $tech $via]} else {
+                    if {$via ne "NULL"} {set via [tech_via $tech $via $parent $sx]} else {
                         set via [dict get $vias [[$box getBlockVia] getName]]
                     }
                     lassign [$box getViaXY] x y
-                    set added [odb::dbSBox_create $special $via [expr {$x+$dx}] [expr {$y+$dy}] [$box getWireShapeType]]
+                    set added [odb::dbSBox_create $special $via [expr {$sx*$x+$dx}] [expr {$y+$dy}] [$box getWireShapeType]]
                 } else {
+                    lassign [rect_xform [list [$box xMin] [$box yMin] [$box xMax] [$box yMax]] $sx] x0 y0 x1 y1
                     set added [odb::dbSBox_create $special [layer $tech [$box getTechLayer]] \
-                        [expr {[$box xMin]+$dx}] [expr {[$box yMin]+$dy}] \
-                        [expr {[$box xMax]+$dx}] [expr {[$box yMax]+$dy}] \
+                        [expr {$x0+$dx}] [expr {$y0+$dy}] [expr {$x1+$dx}] [expr {$y1+$dy}] \
                         [$box getWireShapeType] [$box getDirection]]
                 }
                 if {$added eq "NULL"} {error "Failed to copy PG geometry"}
@@ -255,6 +297,7 @@ proc detail_view::expand {parent source macro} {
 }
 set parent [ord::get_db_block]
 foreach {name path} $::env(DETAIL_BLOCKS) {
+    set detail_view::via_signatures [dict create]
     set input [odb::dbDatabase_create]
     if {![file isfile $path]} {error "Missing detailed macro ODB: $path"}
     odb::read_db $input $path

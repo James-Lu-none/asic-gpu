@@ -24,3 +24,30 @@ if {[info exists ::env(MACRO_BLOCKED_LAYERS)]} {
     }
 }
 log_cmd write_abstract_lef -bloat_factor 0 $::env(RESULTS_DIR)/$::env(DESIGN_NAME).lef
+
+# SP keeps its qualified Y symmetry by default. Other mirror axes may be
+# requested only after checking the physical symmetry of all nested leaf masters.
+set abstract_symmetry {}
+if {$::env(DESIGN_NAME) eq "sp_pd_top"} {set abstract_symmetry {Y}}
+if {[info exists ::env(MACRO_SYMMETRY)]} {
+    set abstract_symmetry $::env(MACRO_SYMMETRY)
+    foreach axis $abstract_symmetry {
+        if {$axis ni {X Y}} {error "Unsupported abstract symmetry $axis"}
+    }
+}
+if {[llength $abstract_symmetry]} {
+    set symmetry_line "SYMMETRY [join $abstract_symmetry { }] ;"
+    set lef_path "$::env(RESULTS_DIR)/$::env(DESIGN_NAME).lef"
+    set lef_file [open $lef_path r]
+    set lef_text [read $lef_file]
+    close $lef_file
+    if {![regexp {SYMMETRY[^;]*;} $lef_text]} {
+        set lef_text [string map [list "  CLASS BLOCK ;" "  CLASS BLOCK ;\n  $symmetry_line"] $lef_text]
+    } else {
+        regsub {SYMMETRY[^;]*;} $lef_text $symmetry_line lef_text
+    }
+    if {[string first $symmetry_line $lef_text] < 0} {error "Could not declare macro mirror symmetry"}
+    set lef_file [open $lef_path w]
+    puts -nonewline $lef_file $lef_text
+    close $lef_file
+}
