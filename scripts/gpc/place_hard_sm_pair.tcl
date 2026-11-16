@@ -31,15 +31,21 @@ set lm [[lindex $l2s 0] getMaster]
 set lw [expr {[$lm getWidth]/double($units)}]
 set lh [expr {[$lm getHeight]/double($units)}]
 set gap $::env(GPC_L2_GAP)
-set lx [expr {$x+($sw-(2*$lw+$gap))/2}]
-set ly [expr {$y+$sh+($channel-(2*$lh+$gap))/2}]
+set columns $::env(GPC_L2_COLUMNS)
+if {$columns ni {2 4}} {error "GPC_L2_COLUMNS must be 2 or 4"}
+set rows [expr {4/$columns}]
+set cluster_w [expr {$columns*$lw+($columns-1)*$gap}]
+set cluster_h [expr {$rows*$lh+($rows-1)*$gap}]
+if {$cluster_w+32 > $sw || $cluster_h+32 > $channel} {error "L2 cluster does not fit the central channel"}
+set lx [expr {$x+($sw-$cluster_w)/2}]
+set ly [expr {$y+$sh+($channel-$cluster_h)/2}]
 set seen {}
 foreach inst $l2s {
     set path [string map {\\ {}} [$inst getName]]
     if {![regexp {bank\[([0-3])\]} $path -> index] || $index in $seen} {error "Unexpected L2 slice: $path"}
     lappend seen $index
     place_macro -macro_name [$inst getName] -orientation R0 \
-        -location [list [expr {$lx+($index%2)*($lw+$gap)}] [expr {$ly+($index/2)*($lh+$gap)}]]
+        -location [list [expr {$lx+($index%$columns)*($lw+$gap)}] [expr {$ly+($index/$columns)*($lh+$gap)}]]
 }
 set placed {}
 set core [$block getCoreArea]
@@ -52,4 +58,4 @@ foreach inst [concat $sms $l2s] {
     }
     lappend placed $inst
 }
-puts "GPC_PAIR_PLACEMENT_PASS: lower SM MX, upper SM R0, central L2"
+puts "GPC_PAIR_PLACEMENT_PASS: lower SM MX, upper SM R0, central L2 $columns columns x $rows rows"
