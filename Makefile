@@ -36,7 +36,10 @@ REPORTS := $(BUILD)/$(RUN_PATH)/reports
 LOGS := $(BUILD)/$(RUN_PATH)/logs
 SIM_BUILD := $(BUILD)/$(RUN_PATH)/sim
 
-.PHONY: all elaborate flow abstract signoff drc lvs gate-test gui gui-web images
+.PHONY: all elaborate flow abstract signoff drc lvs gate-test gui gui-web images print-architecture
+
+print-architecture:
+	@echo $(GPU_NUM_SMS):$(GPU_NUM_SPS):$(GPU_NUM_LANES)
 
 all:
 	$(MAKE) flow STAGE=finish
@@ -71,7 +74,7 @@ abstract:
 # Expand completed macro geometry in a separate GUI database; no P&R is rerun.
 .PHONY: details gui-detail web-gui-detail
 details:
-	@test -n "$(strip $(DETAIL_BLOCKS))" || { echo "Select a hierarchical preset with DETAIL_BLOCKS (SM: FLOW_VARIANT=hard_sp_stack)."; exit 1; }
+	@test -n "$(strip $(DETAIL_BLOCKS))" || { echo "Select a hierarchical preset with DETAIL_BLOCKS (SM: hard_sp_stack; GPC: hard_sm_pair_l2_padding)."; exit 1; }
 	@test -s $(RESULTS)/6_final.odb || { echo "Complete the parent flow first."; exit 1; }
 	$(DOCKER) $(IMAGE) make $(FLOW_ARGS) run \
 	    RUN_SCRIPT=/work/scripts/flow/detail_view.tcl RUN_LOG_NAME_STEM=detail_view

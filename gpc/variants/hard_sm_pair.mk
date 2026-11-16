@@ -1,6 +1,5 @@
 GPC_CONFIG_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
 include $(dir $(lastword $(MAKEFILE_LIST)))../config.mk
-GPU_NUM_SMS := $(strip $(shell sed -nE 's/^[[:space:]]*.define[[:space:]]+NUM_SMS[[:space:]]+([0-9]+).*/\1/p' $(GPU_DEFINES_FILE)))
 ifneq ($(GPU_NUM_SMS):$(GPU_NUM_SPS):$(GPU_NUM_LANES),2:4:16)
 $(error hard_sm_pair requires NUM_SMS=2 NUM_SPS=4 NUM_LANES=16)
 endif

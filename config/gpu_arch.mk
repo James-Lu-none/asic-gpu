@@ -1,12 +1,14 @@
-# Architecture dimensions come only from the shared RTL header, never a copy.
-GPU_DEFINES_FILE := $(HARDWARE_ROOT)/rtl/common/gpu_defines.vh
-GPU_NUM_LANES := $(strip $(shell sed -nE 's/^[[:space:]]*.define[[:space:]]+NUM_LANES[[:space:]]+([0-9]+).*/\1/p' $(GPU_DEFINES_FILE)))
-GPU_NUM_SPS := $(strip $(shell sed -nE 's/^[[:space:]]*.define[[:space:]]+NUM_SPS[[:space:]]+([0-9]+).*/\1/p' $(GPU_DEFINES_FILE)))
-ifeq ($(GPU_NUM_LANES),)
-$(error Cannot read numeric NUM_LANES from $(GPU_DEFINES_FILE))
+# Use one explicit ASIC architecture configuration for checks and synthesis.
+include $(dir $(lastword $(MAKEFILE_LIST)))asic_defines.mk
+export VERILOG_DEFINES += -DNUM_SMS=$(GPU_NUM_SMS) -DNUM_SPS=$(GPU_NUM_SPS) -DNUM_LANES=$(GPU_NUM_LANES)
+ifeq ($(strip $(GPU_NUM_SMS)),)
+$(error Set GPU_NUM_SMS in config/asic_defines.mk)
 endif
-ifeq ($(GPU_NUM_SPS),)
-$(error Cannot read numeric NUM_SPS from $(GPU_DEFINES_FILE))
+ifeq ($(strip $(GPU_NUM_LANES)),)
+$(error Set GPU_NUM_LANES in config/asic_defines.mk)
+endif
+ifeq ($(strip $(GPU_NUM_SPS)),)
+$(error Set GPU_NUM_SPS in config/asic_defines.mk)
 endif
 # Include headers as source prerequisites so define changes trigger synthesis.
 GPU_HEADERS = /hardware/rtl/common/gpu_defines.vh /hardware/rtl/common/gpu_debug.vh
