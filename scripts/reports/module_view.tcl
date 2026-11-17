@@ -1,4 +1,4 @@
-# Visualization only. Boxes enclose name-matched placed instances, not regions.
+# Visualization only. Boxes enclose module/explicit-group instances, not regions.
 # Flattened/anonymous cells are left gray; no ownership is inferred from wiring.
 namespace eval module_view {}
 
@@ -15,7 +15,10 @@ proc module_view::save {} {
     set name [$inst getName]
     set path [string map {\\ {}} $name]
     set group ""
-    if {[regexp {^(.*?gen_sub_partitions\[[0-9]+\]\.u_sp)(\.|$)} $path -> prefix]} {
+    set placement_group [$inst getGroup]
+    if {$placement_group ne "NULL" && [regexp {^l2_valid_[0-3]$} [$placement_group getName]]} {
+      set group [$placement_group getName]
+    } elseif {[regexp {^(.*?gen_sub_partitions\[[0-9]+\]\.u_sp)(\.|$)} $path -> prefix]} {
       set group $prefix
     } elseif {[regexp {^(u_sp)(\.|$)} $path -> prefix]} {
       set group $prefix
@@ -44,7 +47,7 @@ proc module_view::save {} {
   gui::fit
 
   set report [open $::env(REPORTS_DIR)/module_view.tsv w]
-  puts $report "# Name-matched instances only; boxes may overlap and are not floorplan constraints."
+  puts $report "# Module names or explicit placement groups; drawn boxes are not floorplan constraints."
   set core [$block getCoreArea]
   puts $report "# core_width_um=[ord::dbu_to_microns [$core dx]] core_height_um=[ord::dbu_to_microns [$core dy]]"
   puts $report "group\tinstances\tmacros\txmin_um\tymin_um\txmax_um\tymax_um"
